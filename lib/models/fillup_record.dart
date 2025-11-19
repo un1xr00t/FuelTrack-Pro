@@ -1,6 +1,7 @@
 // lib/models/fillup_record.dart
 class FillupRecord {
   final String id;
+  final String vehicleId;  // NEW: Link to vehicle
   final DateTime date;
   final double odometer;
   final double? dteBeforeFillup;  // Optional - for real-time monitoring
@@ -18,10 +19,11 @@ class FillupRecord {
   
   FillupRecord({
     required this.id,
+    required this.vehicleId,  // NEW
     required this.date,
     required this.odometer,
-    this.dteBeforeFillup,    // Now optional
-    this.dteAfterFillup,     // Now optional
+    this.dteBeforeFillup,
+    this.dteAfterFillup,
     required this.gallons,
     required this.totalCost,
     required this.cityDrivingPercent,
@@ -83,6 +85,7 @@ class FillupRecord {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'vehicleId': vehicleId,  // NEW
       'date': date.toIso8601String(),
       'odometer': odometer,
       'dteBeforeFillup': dteBeforeFillup,
@@ -104,6 +107,7 @@ class FillupRecord {
   factory FillupRecord.fromJson(Map<String, dynamic> json) {
     return FillupRecord(
       id: json['id'],
+      vehicleId: json['vehicleId'],  // NEW
       date: DateTime.parse(json['date']),
       odometer: json['odometer'],
       dteBeforeFillup: json['dteBeforeFillup'],
@@ -123,6 +127,7 @@ class FillupRecord {
 
   FillupRecord copyWith({
     String? id,
+    String? vehicleId,  // NEW
     DateTime? date,
     double? odometer,
     double? dteBeforeFillup,
@@ -140,6 +145,7 @@ class FillupRecord {
   }) {
     return FillupRecord(
       id: id ?? this.id,
+      vehicleId: vehicleId ?? this.vehicleId,  // NEW
       date: date ?? this.date,
       odometer: odometer ?? this.odometer,
       dteBeforeFillup: dteBeforeFillup ?? this.dteBeforeFillup,
@@ -168,6 +174,9 @@ class VehicleProfile {
   final double? epaCity;
   final double? epaHighway;
   final double? epaCombined;
+  final bool isActive;  // NEW: Track which vehicle is selected
+  final DateTime createdAt;  // NEW: Track creation time
+  final String? imagePath;  // NEW: Path to vehicle image
   
   VehicleProfile({
     required this.id,
@@ -179,7 +188,10 @@ class VehicleProfile {
     this.epaCity,
     this.epaHighway,
     this.epaCombined,
-  });
+    this.isActive = false,  // NEW
+    DateTime? createdAt,  // NEW
+    this.imagePath,  // NEW
+  }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() {
     return {
@@ -192,6 +204,9 @@ class VehicleProfile {
       'epaCity': epaCity,
       'epaHighway': epaHighway,
       'epaCombined': epaCombined,
+      'isActive': isActive ? 1 : 0,  // NEW
+      'createdAt': createdAt.toIso8601String(),  // NEW
+      'imagePath': imagePath,  // NEW
     };
   }
 
@@ -206,6 +221,39 @@ class VehicleProfile {
       epaCity: json['epaCity'],
       epaHighway: json['epaHighway'],
       epaCombined: json['epaCombined'],
+      isActive: json['isActive'] == 1,  // NEW
+      createdAt: DateTime.parse(json['createdAt']),  // NEW
+      imagePath: json['imagePath'],  // NEW
+    );
+  }
+
+  VehicleProfile copyWith({
+    String? id,
+    String? name,
+    String? make,
+    String? model,
+    int? year,
+    double? tankCapacity,
+    double? epaCity,
+    double? epaHighway,
+    double? epaCombined,
+    bool? isActive,
+    DateTime? createdAt,
+    String? imagePath,
+  }) {
+    return VehicleProfile(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      make: make ?? this.make,
+      model: model ?? this.model,
+      year: year ?? this.year,
+      tankCapacity: tankCapacity ?? this.tankCapacity,
+      epaCity: epaCity ?? this.epaCity,
+      epaHighway: epaHighway ?? this.epaHighway,
+      epaCombined: epaCombined ?? this.epaCombined,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      imagePath: imagePath ?? this.imagePath,
     );
   }
 }

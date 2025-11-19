@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import '../services/database_service.dart';
+import '../models/fillup_record.dart';
 
 class AddFillupScreen extends StatefulWidget {
   const AddFillupScreen({super.key});
@@ -23,6 +25,21 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
   bool _isFullTank = true;
   String _fuelGrade = '87 Regular';
   String _paymentMethod = 'Card';
+  bool _isLoading = false;
+  VehicleProfile? _activeVehicle;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActiveVehicle();
+  }
+
+  Future<void> _loadActiveVehicle() async {
+    final vehicle = await DatabaseService.instance.getActiveVehicle();
+    setState(() {
+      _activeVehicle = vehicle;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +65,10 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Active Vehicle Display
+                  if (_activeVehicle != null) _buildActiveVehicleCard(),
+                  if (_activeVehicle != null) const SizedBox(height: 24),
+                  
                   // Feature Highlight
                   _buildFeatureHighlight(),
                   const SizedBox(height: 24),
@@ -163,7 +184,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _saveFillup,
+                      onPressed: _isLoading ? null : _saveFillup,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF667EEA),
                         foregroundColor: Colors.white,
@@ -173,14 +194,16 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                         elevation: 8,
                         shadowColor: const Color(0xFF667EEA).withOpacity(0.4),
                       ),
-                      child: const Text(
-                        'CALCULATE & SAVE FILL-UP',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'CALCULATE & SAVE FILL-UP',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -189,6 +212,62 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildActiveVehicleCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF10B981).withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.directions_car,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'TRACKING FOR',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF10B981),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _activeVehicle!.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -513,9 +592,18 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
     );
   }
 
-  void _saveFillup() {
-    if (_odometerController.text.isEmpty ||
-        _gallonsController.text.isEmpty) {
+  Future<void> _saveFillup() async {
+    if (_activeVehicle == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No active vehicle selected. Please add a vehicle first.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_odometerController.text.isEmpty || _gallonsController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter odometer reading and gallons'),
@@ -525,46 +613,128 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
       return;
     }
 
-    // Calculate MPG using tank-to-tank method
-    final currentOdo = double.parse(_odometerController.text);
-    final gallons = double.parse(_gallonsController.text);
-    
-    // Mock previous data for demo
-    final lastOdo = 4300.0;
-    
-    // Simple, accurate tank-to-tank calculation
-    final mpg = (currentOdo - lastOdo) / gallons;
-    
-    // Optional: DTE-based efficiency estimate
-    String dteMessage = '';
-    if (_dteAfterController.text.isNotEmpty) {
-      final dteAfter = double.parse(_dteAfterController.text);
-      final estimatedMPG = dteAfter / gallons;
-      dteMessage = '\n\nDTE Estimate: ${estimatedMPG.toStringAsFixed(1)} MPG';
-    }
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Fill-up Saved!', style: TextStyle(color: Colors.white)),
-        content: Text(
-          'Calculated MPG: ${mpg.toStringAsFixed(1)}'
-          '\nBased on ${(currentOdo - lastOdo).toStringAsFixed(1)} miles driven'
-          '$dteMessage',
-          style: const TextStyle(color: Colors.white),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('OK', style: TextStyle(color: Color(0xFF667EEA))),
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final currentOdo = double.parse(_odometerController.text);
+      final gallons = double.parse(_gallonsController.text);
+      final cost = _costController.text.isNotEmpty 
+          ? double.parse(_costController.text) 
+          : 0.0;
+
+      // Create fillup record
+      final fillup = FillupRecord(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        vehicleId: _activeVehicle!.id,
+        date: DateTime.now(),
+        odometer: currentOdo,
+        dteBeforeFillup: _dteBeforeController.text.isNotEmpty 
+            ? double.tryParse(_dteBeforeController.text) 
+            : null,
+        dteAfterFillup: _dteAfterController.text.isNotEmpty 
+            ? double.tryParse(_dteAfterController.text) 
+            : null,
+        gallons: gallons,
+        totalCost: cost,
+        cityDrivingPercent: _cityPercent,
+        isFullTank: _isFullTank,
+        fuelGrade: _fuelGrade,
+        location: _locationController.text.isNotEmpty 
+            ? _locationController.text 
+            : null,
+        paymentMethod: _paymentMethod,
+      );
+
+      // Save to database
+      await DatabaseService.instance.createFillup(fillup);
+
+      // Get previous fillup to calculate MPG
+      final fillups = await DatabaseService.instance.getFillupsByVehicle(_activeVehicle!.id);
+      final previousFillup = fillups.length > 1 ? fillups[1] : null;
+
+      // Calculate MPG
+      final mpg = fillup.calculateMPG(previousFillup);
+      
+      // Optional: DTE-based efficiency estimate
+      final estimatedMPG = fillup.estimateCurrentMPG();
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1A1A),
+            title: const Text('Fill-up Saved!', style: TextStyle(color: Colors.white)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (mpg > 0) ...[
+                  Text(
+                    'Tank-to-Tank MPG: ${mpg.toStringAsFixed(1)}',
+                    style: const TextStyle(
+                      color: Color(0xFF10B981),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (previousFillup != null)
+                    Text(
+                      'Based on ${(currentOdo - previousFillup.odometer).toStringAsFixed(1)} miles driven',
+                      style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                    ),
+                ] else ...[
+                  Text(
+                    'Fill-up recorded!',
+                    style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'MPG will be calculated after your next full tank fill-up.',
+                    style: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  ),
+                ],
+                if (estimatedMPG != null) ...[
+                  const SizedBox(height: 12),
+                  const Divider(color: Color(0xFF2A2A2A)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'DTE Estimate: ${estimatedMPG.toStringAsFixed(1)} MPG',
+                    style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context, true);
+                },
+                child: const Text('OK', style: TextStyle(color: Color(0xFF667EEA))),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving fill-up: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override

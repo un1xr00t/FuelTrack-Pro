@@ -2,9 +2,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import '../services/database_service.dart';
+import '../models/fillup_record.dart';
 
-class StatsScreen extends StatelessWidget {
+class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
+
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen> {
+  VehicleProfile? _activeVehicle;
+  FuelStats? _stats;
+  List<FillupRecord> _fillups = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final vehicle = await DatabaseService.instance.getActiveVehicle();
+      
+      if (vehicle != null) {
+        final stats = await DatabaseService.instance.calculateStats(vehicle.id);
+        final fillups = await DatabaseService.instance.getFillupsByVehicle(vehicle.id);
+        
+        setState(() {
+          _activeVehicle = vehicle;
+          _stats = stats;
+          _fillups = fillups;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,32 +64,85 @@ class StatsScreen extends StatelessWidget {
       body: SafeArea(
         child: Container(
           color: const Color(0xFF000000),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(top: 60, left: 16, right: 16, bottom: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildOverallStats(),
-                const SizedBox(height: 24),
-                _buildSectionTitle('Fuel Efficiency Trend'),
-                const SizedBox(height: 16),
-                _buildEfficiencyChart(),
-                const SizedBox(height: 24),
-                _buildSectionTitle('Cost Analysis'),
-                const SizedBox(height: 16),
-                _buildCostChart(),
-                const SizedBox(height: 24),
-                _buildSectionTitle('Driving Breakdown'),
-                const SizedBox(height: 16),
-                _buildDrivingBreakdown(),
-                const SizedBox(height: 24),
-                _buildSectionTitle('Insights & Trends'),
-                const SizedBox(height: 16),
-                _buildInsights(),
-                const SizedBox(height: 100), // Bottom padding for FAB
-              ],
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF667EEA),
+                  ),
+                )
+              : _activeVehicle == null
+                  ? _buildEmptyState('No Active Vehicle', 'Select a vehicle in the Garage')
+                  : _stats == null || _stats!.totalFillups == 0
+                      ? _buildEmptyState('No Data Yet', 'Add fill-ups to see statistics')
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildOverallStats(),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Fuel Efficiency Trend'),
+                              const SizedBox(height: 16),
+                              _buildEfficiencyChart(),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Cost Analysis'),
+                              const SizedBox(height: 16),
+                              _buildCostChart(),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Driving Breakdown'),
+                              const SizedBox(height: 16),
+                              _buildDrivingBreakdown(),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Insights & Trends'),
+                              const SizedBox(height: 16),
+                              _buildInsights(),
+                              const SizedBox(height: 100),
+                            ],
+                          ),
+                        ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.bar_chart,
+                size: 64,
+                color: Color(0xFF667EEA),
+              ),
             ),
-          ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.6),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -84,9 +185,21 @@ class StatsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildOverallStatItem('1,947', 'Total Miles', Icons.straighten),
-              _buildOverallStatItem('69', 'Gallons', CupertinoIcons.drop_fill),
-              _buildOverallStatItem('\$235', 'Total Cost', Icons.attach_money),
+              _buildOverallStatItem(
+                _stats!.totalMiles.toStringAsFixed(0),
+                'Total Miles',
+                Icons.straighten,
+              ),
+              _buildOverallStatItem(
+                _stats!.totalGallons.toStringAsFixed(0),
+                'Gallons',
+                CupertinoIcons.drop_fill,
+              ),
+              _buildOverallStatItem(
+                '\$${_stats!.totalCost.toStringAsFixed(0)}',
+                'Total Cost',
+                Icons.attach_money,
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -95,9 +208,21 @@ class StatsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildOverallStatItem('7', 'Fill-Ups', Icons.local_gas_station),
-              _buildOverallStatItem('32.7', 'Avg MPG', Icons.speed),
-              _buildOverallStatItem('\$0.11', 'Cost/Mile', Icons.payments),
+              _buildOverallStatItem(
+                _stats!.totalFillups.toString(),
+                'Fill-Ups',
+                Icons.local_gas_station,
+              ),
+              _buildOverallStatItem(
+                _stats!.averageMPG.toStringAsFixed(1),
+                'Avg MPG',
+                Icons.speed,
+              ),
+              _buildOverallStatItem(
+                '\$${_stats!.averageCostPerMile.toStringAsFixed(2)}',
+                'Cost/Mile',
+                Icons.payments,
+              ),
             ],
           ),
         ],
@@ -131,6 +256,22 @@ class StatsScreen extends StatelessWidget {
   }
 
   Widget _buildEfficiencyChart() {
+    // Get MPG values from fillups
+    List<double> mpgValues = [];
+    for (int i = 0; i < _fillups.length - 1; i++) {
+      final current = _fillups[i];
+      final previous = _fillups[i + 1];
+      final mpg = current.calculateMPG(previous);
+      if (mpg > 0) {
+        mpgValues.add(mpg);
+      }
+    }
+    mpgValues = mpgValues.reversed.toList(); // Oldest to newest
+    
+    final epaComparison = _activeVehicle?.epaCombined != null
+        ? _stats!.trueMPG - _activeVehicle!.epaCombined!
+        : null;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
@@ -150,45 +291,61 @@ class StatsScreen extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  '+2.4 MPG vs EPA',
-                  style: TextStyle(
-                    color: Color(0xFF10B981),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+              if (epaComparison != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: epaComparison > 0
+                        ? const Color(0xFF10B981).withOpacity(0.2)
+                        : const Color(0xFFF59E0B).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${epaComparison > 0 ? '+' : ''}${epaComparison.toStringAsFixed(1)} MPG vs EPA',
+                    style: TextStyle(
+                      color: epaComparison > 0
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFF59E0B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 24),
           SizedBox(
             height: 200,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: LineChartPainter(),
+            child: mpgValues.length < 2
+                ? Center(
+                    child: Text(
+                      'Need more fill-ups to show trend',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                    ),
+                  )
+                : CustomPaint(
+                    size: Size.infinite,
+                    painter: LineChartPainter(mpgValues),
+                  ),
+          ),
+          if (mpgValues.length >= 2) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Oldest',
+                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
+                ),
+                Text(
+                  'Newest',
+                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'May 2025',
-                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
-              ),
-              Text(
-                'Nov 2025',
-                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
-              ),
-            ],
-          ),
+          ],
         ],
       ),
     );
@@ -215,15 +372,25 @@ class StatsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildCostItem('\$3.40', 'Avg Price/Gal', const Color(0xFF667EEA)),
-              _buildCostItem('\$33.57', 'Avg Fill-up', const Color(0xFF667EEA)),
-              _buildCostItem('\$0.105', 'Cost/Mile', const Color(0xFF10B981)),
+              _buildCostItem(
+                '\$${_stats!.averageCostPerGallon.toStringAsFixed(2)}',
+                'Avg Price/Gal',
+                const Color(0xFF667EEA),
+              ),
+              _buildCostItem(
+                '\$${(_stats!.totalCost / _stats!.totalFillups).toStringAsFixed(2)}',
+                'Avg Fill-up',
+                const Color(0xFF667EEA),
+              ),
+              _buildCostItem(
+                '\$${_stats!.averageCostPerMile.toStringAsFixed(3)}',
+                'Cost/Mile',
+                const Color(0xFF10B981),
+              ),
             ],
           ),
           const SizedBox(height: 24),
-          _buildCostBar('Fuel', 235, 100, const Color(0xFF667EEA)),
-          const SizedBox(height: 12),
-          _buildCostBar('Maintenance', 0, 100, const Color(0xFF667EEA)),
+          _buildCostBar('Fuel', _stats!.totalCost, _stats!.totalCost, const Color(0xFF667EEA)),
         ],
       ),
     );
@@ -294,6 +461,9 @@ class StatsScreen extends StatelessWidget {
   }
 
   Widget _buildDrivingBreakdown() {
+    final cityPercent = _stats!.cityDrivingPercent.toInt();
+    final highwayPercent = 100 - cityPercent;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
@@ -305,14 +475,16 @@ class StatsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildPieSection('City', 78, const Color(0xFF667EEA)),
-              _buildPieSection('Highway', 22, const Color(0xFFF59E0B)),
+              _buildPieSection('City', cityPercent, const Color(0xFF667EEA)),
+              _buildPieSection('Highway', highwayPercent, const Color(0xFFF59E0B)),
             ],
           ),
           const SizedBox(height: 24),
-          _buildDrivingStatRow('Best City MPG', '34.8', Icons.location_city),
-          Divider(height: 24, color: Colors.white.withOpacity(0.2)),
-          _buildDrivingStatRow('Best Highway MPG', '39.2', Icons.directions_car),
+          if (_stats!.bestMPG > 0) ...[
+            _buildDrivingStatRow('Best MPG', _stats!.bestMPG.toStringAsFixed(1), Icons.emoji_events),
+            Divider(height: 24, color: Colors.white.withOpacity(0.2)),
+            _buildDrivingStatRow('Worst MPG', _stats!.worstMPG.toStringAsFixed(1), Icons.trending_down),
+          ],
         ],
       ),
     );
@@ -394,30 +566,63 @@ class StatsScreen extends StatelessWidget {
   }
 
   Widget _buildInsights() {
+    final mpgImprovement = _fillups.length >= 4
+        ? _calculateMPGTrend()
+        : 0.0;
+    
+    final epaComparison = _activeVehicle?.epaCombined != null
+        ? _stats!.trueMPG - _activeVehicle!.epaCombined!
+        : null;
+
     return Column(
       children: [
-        _buildInsightCard(
-          '🎯 Efficiency Trend',
-          'Your MPG has improved by 8% over the last 3 months',
-          'Keep maintaining your vehicle and driving habits!',
-          const Color(0xFF10B981),
-        ),
-        const SizedBox(height: 12),
-        _buildInsightCard(
-          '💰 Cost Optimization',
-          'You\'re spending 15% less than the average driver',
-          'Your efficient driving saves ~\$47/month',
-          const Color(0xFF667EEA),
-        ),
-        const SizedBox(height: 12),
+        if (mpgImprovement.abs() > 0.5)
+          _buildInsightCard(
+            '🎯 Efficiency Trend',
+            mpgImprovement > 0
+                ? 'Your MPG has improved by ${mpgImprovement.toStringAsFixed(1)}%'
+                : 'Your MPG has decreased by ${mpgImprovement.abs().toStringAsFixed(1)}%',
+            mpgImprovement > 0
+                ? 'Keep up the great driving!'
+                : 'Consider maintenance or driving adjustments',
+            mpgImprovement > 0 ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+          ),
+        if (mpgImprovement.abs() > 0.5) const SizedBox(height: 12),
+        if (epaComparison != null && _stats!.averageCostPerMile < 0.12)
+          _buildInsightCard(
+            '💰 Cost Optimization',
+            'You\'re spending less than average',
+            'Your efficient driving saves money',
+            const Color(0xFF667EEA),
+          ),
+        if (epaComparison != null && _stats!.averageCostPerMile < 0.12) const SizedBox(height: 12),
         _buildInsightCard(
           '📈 Best Performance',
-          'Your best efficiency was on Sep 21, 2025',
-          '36.0 MPG - mostly highway driving',
+          'Your best efficiency: ${_stats!.bestMPG.toStringAsFixed(1)} MPG',
+          _stats!.cityDrivingPercent < 50 ? 'Mostly highway driving' : 'Great city efficiency',
           const Color(0xFFF59E0B),
         ),
       ],
     );
+  }
+
+  double _calculateMPGTrend() {
+    if (_fillups.length < 4) return 0.0;
+    
+    // Compare first 2 MPG values with last 2 MPG values
+    final recent1 = _fillups[0].calculateMPG(_fillups[1]);
+    final recent2 = _fillups[1].calculateMPG(_fillups[2]);
+    final old1 = _fillups[_fillups.length - 2].calculateMPG(_fillups[_fillups.length - 1]);
+    final old2 = _fillups.length >= 4
+        ? _fillups[_fillups.length - 3].calculateMPG(_fillups[_fillups.length - 2])
+        : old1;
+    
+    if (recent1 <= 0 || recent2 <= 0 || old1 <= 0 || old2 <= 0) return 0.0;
+    
+    final recentAvg = (recent1 + recent2) / 2;
+    final oldAvg = (old1 + old2) / 2;
+    
+    return ((recentAvg - oldAvg) / oldAvg) * 100;
   }
 
   Widget _buildInsightCard(String title, String value, String detail, Color color) {
@@ -478,8 +683,14 @@ class StatsScreen extends StatelessWidget {
 }
 
 class LineChartPainter extends CustomPainter {
+  final List<double> points;
+  
+  LineChartPainter(this.points);
+
   @override
   void paint(Canvas canvas, Size size) {
+    if (points.isEmpty) return;
+
     final paint = Paint()
       ..color = const Color(0xFF667EEA)
       ..strokeWidth = 3
@@ -499,13 +710,11 @@ class LineChartPainter extends CustomPainter {
     final path = Path();
     final fillPath = Path();
 
-    // Sample data points (MPG values)
-    final points = [31.3, 34.8, 32.0, 29.7, 32.7, 36.0];
     final spacing = size.width / (points.length - 1);
 
     // Normalize points to fit in chart
-    final maxMpg = 40.0;
-    final minMpg = 25.0;
+    final maxMpg = points.reduce((a, b) => a > b ? a : b) + 5;
+    final minMpg = points.reduce((a, b) => a < b ? a : b) - 5;
     final range = maxMpg - minMpg;
 
     path.moveTo(0, size.height - ((points[0] - minMpg) / range * size.height));
@@ -549,5 +758,5 @@ class LineChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }

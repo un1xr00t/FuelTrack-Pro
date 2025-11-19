@@ -2,9 +2,72 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import '../services/database_service.dart';
+import '../models/fillup_record.dart';
+import 'package:intl/intl.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  VehicleProfile? _activeVehicle;
+  List<FillupRecord> _fillups = [];
+  FuelStats? _stats;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final vehicle = await DatabaseService.instance.getActiveVehicle();
+      
+      if (vehicle != null) {
+        final fillups = await DatabaseService.instance.getFillupsByVehicle(vehicle.id);
+        final stats = await DatabaseService.instance.calculateStats(vehicle.id);
+        
+        setState(() {
+          _activeVehicle = vehicle;
+          _fillups = fillups;
+          _stats = stats;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Map<String, List<FillupRecord>> _groupByMonth() {
+    final Map<String, List<FillupRecord>> grouped = {};
+    
+    for (final fillup in _fillups) {
+      final monthKey = DateFormat('MMMM yyyy').format(fillup.date);
+      if (!grouped.containsKey(monthKey)) {
+        grouped[monthKey] = [];
+      }
+      grouped[monthKey]!.add(fillup);
+    }
+    
+    return grouped;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,104 +75,90 @@ class HistoryScreen extends StatelessWidget {
       appBar: AdaptiveAppBar(
         title: 'Fill-Up History',
         useNativeToolbar: true,
-        actions: [
-          AdaptiveAppBarAction(
-            icon: CupertinoIcons.search,
-            onPressed: () {},
-          ),
-          AdaptiveAppBarAction(
-            icon: CupertinoIcons.slider_horizontal_3,
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SafeArea(
         child: Container(
           color: const Color(0xFF000000),
-          child: ListView(
-            padding: const EdgeInsets.only(top: 60),
-            children: [
-              _buildRecentEfficiency(),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildMonthSection('November 2025', [
-                      _buildFillupItem(
-                        date: 'Nov 19, 2025',
-                        gallons: 9.621,
-                        cost: 31.35,
-                        mpg: 36.0,
-                        location: 'Shell',
-                        dteCorrected: true,
-                      ),
-                    ]),
-                    const SizedBox(height: 16),
-                    _buildMonthSection('October 2025', [
-                      _buildFillupItem(
-                        date: 'Oct 21, 2025',
-                        gallons: 9.621,
-                        cost: 31.35,
-                        mpg: 36.0,
-                        location: 'Shell',
-                        dteCorrected: true,
-                      ),
-                    ]),
-                    const SizedBox(height: 16),
-                    _buildMonthSection('September 2025', [
-                      _buildFillupItem(
-                        date: 'Sep 21, 2025',
-                        gallons: 9.621,
-                        cost: 31.35,
-                        mpg: 36.0,
-                        location: 'Shell',
-                        dteCorrected: true,
-                      ),
-                    ]),
-                    const SizedBox(height: 16),
-                    _buildMonthSection('August 2025', [
-                      _buildFillupItem(
-                        date: 'Aug 31, 2025',
-                        gallons: 8.275,
-                        cost: 28.13,
-                        mpg: 32.7,
-                        location: 'BP',
-                        dteCorrected: true,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildFillupItem(
-                        date: 'Aug 12, 2025',
-                        gallons: 10.506,
-                        cost: 35.71,
-                        mpg: 29.7,
-                        location: 'Exxon',
-                        dteCorrected: false,
-                      ),
-                    ]),
-                    const SizedBox(height: 16),
-                    _buildMonthSection('July 2025', [
-                      _buildFillupItem(
-                        date: 'Jul 14, 2025',
-                        gallons: 10.238,
-                        cost: 35.82,
-                        mpg: 32.0,
-                        location: 'Chevron',
-                        dteCorrected: true,
-                      ),
-                    ]),
-                    const SizedBox(height: 100), // Bottom padding for FAB
-                  ],
-                ),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF667EEA),
+                  ),
+                )
+              : _activeVehicle == null
+                  ? _buildEmptyState('No Active Vehicle', 'Select a vehicle in the Garage')
+                  : _fillups.isEmpty
+                      ? _buildEmptyState('No Fill-Ups Yet', 'Tap + to add your first fill-up')
+                      : ListView(
+                          padding: const EdgeInsets.only(top: 16),
+                          children: [
+                            _buildRecentEfficiency(),
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: _buildMonthSections(),
+                              ),
+                            ),
+                          ],
+                        ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(24),
               ),
-            ],
-          ),
+              child: const Icon(
+                Icons.history,
+                size: 64,
+                color: Color(0xFF667EEA),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.6),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildRecentEfficiency() {
+    final bestMPG = _stats?.bestMPG ?? 0.0;
+    final lastMPG = _fillups.length >= 2
+        ? _fillups[0].calculateMPG(_fillups[1])
+        : 0.0;
+
+    // Get last 6 fillups for mini chart
+    final recentFillups = _fillups.take(6).toList().reversed.toList();
+    
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A1A),
@@ -129,30 +178,44 @@ class HistoryScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildEfficiencyStat('BEST MPG', '36.0', const Color(0xFF10B981)),
+              _buildEfficiencyStat(
+                'BEST MPG',
+                bestMPG > 0 ? bestMPG.toStringAsFixed(1) : '--',
+                const Color(0xFF10B981),
+              ),
               Container(width: 1, height: 40, color: const Color(0xFF2A2A2A)),
-              _buildEfficiencyStat('LAST MPG', '36.0', const Color(0xFF667EEA)),
+              _buildEfficiencyStat(
+                'LAST MPG',
+                lastMPG > 0 ? lastMPG.toStringAsFixed(1) : '--',
+                const Color(0xFF667EEA),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Mini bar chart
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildBar(32, 40),
-              const SizedBox(width: 4),
-              _buildBar(34, 42),
-              const SizedBox(width: 4),
-              _buildBar(36, 45),
-              const SizedBox(width: 4),
-              _buildBar(33, 41),
-              const SizedBox(width: 4),
-              _buildBar(35, 43),
-              const SizedBox(width: 4),
-              _buildBar(36, 45),
-            ],
-          ),
+          if (recentFillups.length >= 2) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(
+                recentFillups.length >= 2 ? recentFillups.length - 1 : 0,
+                (index) {
+                  final fillup = recentFillups[index + 1];
+                  final previous = recentFillups[index];
+                  final mpg = fillup.calculateMPG(previous);
+                  
+                  // Normalize height (25-50 range)
+                  final height = mpg > 0
+                      ? ((mpg / (bestMPG > 0 ? bestMPG : 40)) * 25 + 25).clamp(25.0, 50.0)
+                      : 25.0;
+                  
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _buildBar(mpg.toInt(), height),
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -194,7 +257,22 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMonthSection(String month, List<Widget> items) {
+  List<Widget> _buildMonthSections() {
+    final groupedFillups = _groupByMonth();
+    final List<Widget> sections = [];
+    
+    groupedFillups.forEach((month, fillups) {
+      sections.add(_buildMonthSection(month, fillups));
+      sections.add(const SizedBox(height: 16));
+    });
+    
+    // Add bottom padding
+    sections.add(const SizedBox(height: 84));
+    
+    return sections;
+  }
+
+  Widget _buildMonthSection(String month, List<FillupRecord> fillups) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -210,19 +288,25 @@ class HistoryScreen extends StatelessWidget {
             ),
           ),
         ),
-        ...items,
+        ...List.generate(fillups.length, (index) {
+          final fillup = fillups[index];
+          final previousFillup = index < fillups.length - 1
+              ? fillups[index + 1]
+              : null;
+          final mpg = fillup.calculateMPG(previousFillup);
+          
+          return Padding(
+            padding: EdgeInsets.only(bottom: index < fillups.length - 1 ? 12 : 0),
+            child: _buildFillupItem(fillup, mpg),
+          );
+        }),
       ],
     );
   }
 
-  Widget _buildFillupItem({
-    required String date,
-    required double gallons,
-    required double cost,
-    required double mpg,
-    required String location,
-    required bool dteCorrected,
-  }) {
+  Widget _buildFillupItem(FillupRecord fillup, double mpg) {
+    final dateStr = DateFormat('MMM d, yyyy').format(fillup.date);
+    
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
@@ -232,7 +316,8 @@ class HistoryScreen extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigate to detail screen
+            // Navigate to detail screen or show details
+            _showFillupDetails(fillup, mpg);
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -261,7 +346,7 @@ class HistoryScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        date,
+                        dateStr,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -270,7 +355,7 @@ class HistoryScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${gallons.toStringAsFixed(1)} gal • \$${cost.toStringAsFixed(2)} • $location',
+                        '${fillup.gallons.toStringAsFixed(1)} gal • \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' • ${fillup.location}' : ''}',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.white.withOpacity(0.6),
@@ -280,19 +365,19 @@ class HistoryScreen extends StatelessWidget {
                       Row(
                         children: [
                           Icon(
-                            dteCorrected ? Icons.local_gas_station : Icons.warning,
+                            fillup.isFullTank ? Icons.local_gas_station : Icons.warning,
                             size: 14,
-                            color: dteCorrected
+                            color: fillup.isFullTank
                                 ? const Color(0xFF10B981)
                                 : const Color(0xFFF59E0B),
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            dteCorrected ? 'Full Tank' : 'Partial Fill',
+                            fillup.isFullTank ? 'Full Tank' : 'Partial Fill',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: dteCorrected
+                              color: fillup.isFullTank
                                   ? const Color(0xFF10B981)
                                   : const Color(0xFFF59E0B),
                             ),
@@ -308,7 +393,7 @@ class HistoryScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      mpg.toStringAsFixed(1),
+                      mpg > 0 ? mpg.toStringAsFixed(1) : '--',
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -328,6 +413,71 @@ class HistoryScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showFillupDetails(FillupRecord fillup, double mpg) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Fill-Up Details',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow('Date', DateFormat('MMM d, yyyy h:mm a').format(fillup.date)),
+            _buildDetailRow('Odometer', '${fillup.odometer.toStringAsFixed(1)} mi'),
+            _buildDetailRow('Gallons', '${fillup.gallons.toStringAsFixed(2)} gal'),
+            _buildDetailRow('Cost', '\$${fillup.totalCost.toStringAsFixed(2)}'),
+            _buildDetailRow('Price/Gal', '\$${fillup.pricePerGallon.toStringAsFixed(2)}'),
+            if (mpg > 0) _buildDetailRow('MPG', mpg.toStringAsFixed(1)),
+            _buildDetailRow('Fuel Grade', fillup.fuelGrade),
+            _buildDetailRow('Fill Type', fillup.isFullTank ? 'Full Tank' : 'Partial'),
+            _buildDetailRow('City/Highway', '${fillup.cityDrivingPercent.toInt()}% / ${(100 - fillup.cityDrivingPercent).toInt()}%'),
+            if (fillup.location != null) _buildDetailRow('Location', fillup.location!),
+            if (fillup.paymentMethod != null) _buildDetailRow('Payment', fillup.paymentMethod!),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'CLOSE',
+              style: TextStyle(color: Color(0xFF667EEA)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.6),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }

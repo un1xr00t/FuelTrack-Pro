@@ -9,11 +9,13 @@ import 'screens/home_screen.dart';
 import 'screens/add_fillup_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/stats_screen.dart';
+import 'screens/garage_screen.dart';
+import 'screens/onboarding_screen.dart';
+import 'services/database_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Set status bar style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarBrightness: Brightness.dark,
@@ -34,8 +36,6 @@ class FuelTrackProApp extends StatelessWidget {
     return AdaptiveApp(
       title: 'FuelTrack Pro',
       themeMode: ThemeMode.dark,
-      
-      // Material theme for Android
       materialDarkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -60,8 +60,6 @@ class FuelTrackProApp extends StatelessWidget {
           ),
         ),
       ),
-      
-      // Cupertino theme for iOS
       cupertinoDarkTheme: const CupertinoThemeData(
         brightness: Brightness.dark,
         primaryColor: Color(0xFF667EEA),
@@ -71,8 +69,6 @@ class FuelTrackProApp extends StatelessWidget {
           primaryColor: Color(0xFFFFFFFF),
         ),
       ),
-      
-      // Add localizations support
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -81,8 +77,79 @@ class FuelTrackProApp extends StatelessWidget {
       supportedLocales: const [
         Locale('en', 'US'),
       ],
-      
-      home: const MainNavigationScreen(),
+      routes: {
+        '/home': (context) => const MainNavigationScreen(),
+        '/onboarding': (context) => const OnboardingScreen(),
+      },
+      home: const AppInitializer(),
+    );
+  }
+}
+
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    final isComplete = await DatabaseService.instance.isOnboardingComplete();
+    
+    if (mounted) {
+      if (isComplete) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/onboarding');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF000000),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF667EEA),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.local_gas_station,
+                size: 64,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'FuelTrack Pro',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const CircularProgressIndicator(
+              color: Color(0xFF667EEA),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -101,6 +168,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const HomeScreen(),
     const HistoryScreen(),
     const StatsScreen(),
+    const GarageScreen(),
   ];
 
   @override
@@ -122,6 +190,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: 'chart.bar.fill',
             label: 'Stats',
           ),
+          AdaptiveNavigationDestination(
+            icon: 'car.fill',
+            label: 'Garage',
+          ),
         ],
         selectedIndex: _selectedIndex,
         onTap: (index) {
@@ -130,16 +202,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           });
         },
       ),
-      floatingActionButton: AdaptiveFloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddFillupScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFF667EEA),
-        child: const Icon(Icons.add, size: 32, color: Colors.white),
-      ),
+      floatingActionButton: _selectedIndex != 3
+          ? AdaptiveFloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddFillupScreen(),
+                  ),
+                );
+                if (result == true && mounted) {
+                  setState(() {});
+                }
+              },
+              backgroundColor: const Color(0xFF667EEA),
+              child: const Icon(Icons.add, size: 32, color: Colors.white),
+            )
+          : null,
     );
   }
 }

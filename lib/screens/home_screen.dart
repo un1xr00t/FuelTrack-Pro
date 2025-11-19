@@ -2,9 +2,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import '../services/database_service.dart';
+import '../models/fillup_record.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  VehicleProfile? _activeVehicle;
+  FuelStats? _stats;
+  List<FillupRecord> _recentFillups = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final vehicle = await DatabaseService.instance.getActiveVehicle();
+      
+      if (vehicle != null) {
+        final stats = await DatabaseService.instance.calculateStats(vehicle.id);
+        final fillups = await DatabaseService.instance.getFillupsByVehicle(vehicle.id);
+        
+        setState(() {
+          _activeVehicle = vehicle;
+          _stats = stats;
+          _recentFillups = fillups.take(3).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,66 +62,113 @@ class HomeScreen extends StatelessWidget {
         useNativeToolbar: true,
       ),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  const SizedBox(height: 32), // Top padding
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'My Camry',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF667EEA),
+                ),
+              )
+            : _activeVehicle == null
+                ? _buildEmptyState()
+                : CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 32),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: 16.0,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _activeVehicle!.name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${_stats?.totalMiles.toStringAsFixed(0) ?? '0'} miles tracked',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.6),
+                                      fontSize: 16,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '1,947 miles tracked',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 16,
+                      ),
+                      SliverToBoxAdapter(
+                        child: Container(
+                          color: const Color(0xFF000000),
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildFeaturedCard(),
+                              const SizedBox(height: 16),
+                              _buildStatsGrid(),
+                              const SizedBox(height: 24),
+                              _buildQuickInsights(),
+                              const SizedBox(height: 24),
+                              _buildRecentActivity(),
+                              const SizedBox(height: 100),
+                            ],
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.directions_car,
+                size: 64,
+                color: Color(0xFF667EEA),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Container(
-                color: const Color(0xFF000000),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Featured True MPG Card
-                    _buildFeaturedCard(),
-                    const SizedBox(height: 16),
-                    
-                    // Stats Grid
-                    _buildStatsGrid(),
-                    const SizedBox(height: 24),
-                    
-                    // Quick Insights
-                    _buildQuickInsights(),
-                    const SizedBox(height: 24),
-                    
-                    // Recent Activity
-                    _buildRecentActivity(),
-                    const SizedBox(height: 100), // Bottom padding for FAB
-                  ],
-                ),
+            const SizedBox(height: 24),
+            const Text(
+              'No Active Vehicle',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Add a vehicle in the Garage to start tracking',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.6),
               ),
             ),
           ],
@@ -83,6 +178,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildFeaturedCard() {
+    final trueMPG = _stats?.trueMPG ?? 0.0;
+    
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
@@ -127,9 +224,9 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            '33.4',
-            style: TextStyle(
+          Text(
+            trueMPG > 0 ? trueMPG.toStringAsFixed(1) : '--',
+            style: const TextStyle(
               color: Color(0xFF667EEA),
               fontSize: 64,
               fontWeight: FontWeight.bold,
@@ -138,7 +235,9 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Accurate tank-to-tank measurement',
+            trueMPG > 0
+                ? 'Accurate tank-to-tank measurement'
+                : 'Add fill-ups to calculate MPG',
             style: TextStyle(
               color: Colors.white.withOpacity(0.6),
               fontSize: 14,
@@ -158,10 +257,32 @@ class HomeScreen extends StatelessWidget {
       crossAxisSpacing: 16,
       childAspectRatio: 1.3,
       children: [
-        _buildStatCard('AVG MPG', '32.7', 'Overall average', Icons.speed),
-        _buildStatCard('BEST MPG', '36.0', 'Personal record', Icons.emoji_events),
-        _buildStatCard('FUEL COST', '\$235', '69 gallons', Icons.attach_money),
-        _buildStatCard('COST/MILE', '\$0.11', 'Efficient!', Icons.trending_down),
+        _buildStatCard(
+          'AVG MPG',
+          _stats?.averageMPG.toStringAsFixed(1) ?? '--',
+          'Overall average',
+          Icons.speed,
+        ),
+        _buildStatCard(
+          'BEST MPG',
+          _stats?.bestMPG.toStringAsFixed(1) ?? '--',
+          'Personal record',
+          Icons.emoji_events,
+        ),
+        _buildStatCard(
+          'FUEL COST',
+          '\$${_stats?.totalCost.toStringAsFixed(0) ?? '0'}',
+          '${_stats?.totalGallons.toStringAsFixed(0) ?? '0'} gallons',
+          Icons.attach_money,
+        ),
+        _buildStatCard(
+          'COST/MILE',
+          '\$${_stats?.averageCostPerMile.toStringAsFixed(2) ?? '0.00'}',
+          _stats != null && _stats!.averageCostPerMile < 0.12
+              ? 'Efficient!'
+              : 'Track more',
+          Icons.trending_down,
+        ),
       ],
     );
   }
@@ -230,6 +351,11 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildQuickInsights() {
+    final cityPercent = _stats?.cityDrivingPercent ?? 0.0;
+    final epaComparison = _activeVehicle?.epaCombined != null && _stats != null
+        ? _stats!.trueMPG - _activeVehicle!.epaCombined!
+        : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -242,26 +368,44 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _buildInsightCard(
-          '🎯 Driving Efficiency',
-          '78% city / 22% highway',
-          'Your city driving is optimized!',
-          const Color(0xFF10B981),
-        ),
-        const SizedBox(height: 12),
-        _buildInsightCard(
-          '📊 Compared to EPA',
-          '+2.4 MPG above rating',
-          'You\'re beating the EPA estimate',
-          const Color(0xFF667EEA),
-        ),
-        const SizedBox(height: 12),
-        _buildInsightCard(
-          '💡 Savings This Month',
-          '\$47 saved vs. avg driver',
-          'Keep up the efficient driving!',
-          const Color(0xFFF59E0B),
-        ),
+        if (_stats != null && _stats!.totalFillups > 0) ...[
+          _buildInsightCard(
+            '🎯 Driving Efficiency',
+            '${cityPercent.toStringAsFixed(0)}% city / ${(100 - cityPercent).toStringAsFixed(0)}% highway',
+            cityPercent > 70
+                ? 'Mostly city driving'
+                : cityPercent < 30
+                    ? 'Mostly highway driving'
+                    : 'Balanced driving mix',
+            const Color(0xFF10B981),
+          ),
+          const SizedBox(height: 12),
+          if (epaComparison != null)
+            _buildInsightCard(
+              '📊 Compared to EPA',
+              epaComparison > 0
+                  ? '+${epaComparison.toStringAsFixed(1)} MPG above rating'
+                  : '${epaComparison.toStringAsFixed(1)} MPG below rating',
+              epaComparison > 0
+                  ? 'You\'re beating the EPA estimate!'
+                  : 'Try to match the EPA rating',
+              const Color(0xFF667EEA),
+            ),
+          if (epaComparison != null) const SizedBox(height: 12),
+          _buildInsightCard(
+            '💡 Total Fill-Ups',
+            '${_stats!.totalFillups} recorded',
+            'Keep tracking for better insights!',
+            const Color(0xFFF59E0B),
+          ),
+        ] else ...[
+          _buildInsightCard(
+            '🚀 Get Started',
+            'No fill-ups yet',
+            'Add your first fill-up to start tracking!',
+            const Color(0xFF667EEA),
+          ),
+        ],
       ],
     );
   }
@@ -335,31 +479,58 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _buildActivityItem(
-          'Sep 21, 2025',
-          '9.6 gal • \$31.35 • Shell',
-          '36.0 MPG',
-          true,
-        ),
-        const SizedBox(height: 12),
-        _buildActivityItem(
-          'Aug 31, 2025',
-          '8.3 gal • \$28.13 • BP',
-          '32.7 MPG',
-          true,
-        ),
-        const SizedBox(height: 12),
-        _buildActivityItem(
-          'Aug 12, 2025',
-          '10.5 gal • \$35.71 • Exxon',
-          '29.7 MPG',
-          false,
-        ),
+        if (_recentFillups.isEmpty)
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Text(
+                'No fill-ups yet. Tap + to add your first!',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
+        else
+          ...List.generate(_recentFillups.length, (index) {
+            final fillup = _recentFillups[index];
+            final previousFillup = index < _recentFillups.length - 1
+                ? _recentFillups[index + 1]
+                : null;
+            final mpg = fillup.calculateMPG(previousFillup);
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: index < _recentFillups.length - 1 ? 12 : 0),
+              child: _buildActivityItem(
+                fillup.date,
+                fillup.gallons,
+                fillup.totalCost,
+                fillup.location,
+                mpg,
+                fillup.isFullTank,
+              ),
+            );
+          }),
       ],
     );
   }
 
-  Widget _buildActivityItem(String date, String details, String mpg, bool dteCorrected) {
+  Widget _buildActivityItem(
+    DateTime date,
+    double gallons,
+    double cost,
+    String? location,
+    double mpg,
+    bool isFullTank,
+  ) {
+    final dateStr = '${date.month}/${date.day}/${date.year}';
+    
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
@@ -373,7 +544,7 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  date,
+                  dateStr,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -382,7 +553,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  details,
+                  '${gallons.toStringAsFixed(1)} gal • \$${cost.toStringAsFixed(2)}${location != null ? ' • $location' : ''}',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withOpacity(0.6),
@@ -392,17 +563,21 @@ class HomeScreen extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      dteCorrected ? Icons.local_gas_station : Icons.warning,
+                      isFullTank ? Icons.local_gas_station : Icons.warning,
                       size: 14,
-                      color: dteCorrected ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                      color: isFullTank
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFF59E0B),
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      dteCorrected ? 'Full Tank' : 'Partial Fill',
+                      isFullTank ? 'Full Tank' : 'Partial Fill',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: dteCorrected ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        color: isFullTank
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B),
                       ),
                     ),
                   ],
@@ -414,7 +589,7 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                mpg.split(' ')[0],
+                mpg > 0 ? mpg.toStringAsFixed(1) : '--',
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
