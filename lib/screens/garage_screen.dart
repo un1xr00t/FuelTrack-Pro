@@ -6,7 +6,7 @@ import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/database_service.dart';
 import '../models/fillup_record.dart';
-import 'add_vehicle_screen.dart';
+import '../screens/add_vehicle_screen.dart';
 
 class GarageScreen extends StatefulWidget {
   const GarageScreen({super.key});
@@ -18,6 +18,7 @@ class GarageScreen extends StatefulWidget {
 class _GarageScreenState extends State<GarageScreen> {
   List<VehicleProfile> _vehicles = [];
   VehicleProfile? _activeVehicle;
+  Map<String, FuelStats> _vehicleStats = {};
   bool _isLoading = true;
 
   @override
@@ -35,9 +36,17 @@ class _GarageScreenState extends State<GarageScreen> {
       final vehicles = await DatabaseService.instance.getAllVehicles();
       final activeVehicle = await DatabaseService.instance.getActiveVehicle();
 
+      // Load stats for each vehicle
+      Map<String, FuelStats> statsMap = {};
+      for (var vehicle in vehicles) {
+        final stats = await DatabaseService.instance.calculateStats(vehicle.id);
+        statsMap[vehicle.id] = stats;
+      }
+
       setState(() {
         _vehicles = vehicles;
         _activeVehicle = activeVehicle;
+        _vehicleStats = statsMap;
         _isLoading = false;
       });
     } catch (e) {
@@ -81,7 +90,7 @@ class _GarageScreenState extends State<GarageScreen> {
         useNativeToolbar: true,
       ),
       body: SafeArea(
-        top: false, // Don't apply SafeArea to top since app bar handles it
+        top: false,
         child: Container(
           color: const Color(0xFF000000),
           child: _isLoading
@@ -165,7 +174,7 @@ class _GarageScreenState extends State<GarageScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 32),
@@ -209,6 +218,7 @@ class _GarageScreenState extends State<GarageScreen> {
 
   Widget _buildVehicleCard(VehicleProfile vehicle) {
     final isActive = vehicle.id == _activeVehicle?.id;
+    final stats = _vehicleStats[vehicle.id];
 
     return Container(
       decoration: BoxDecoration(
@@ -238,7 +248,7 @@ class _GarageScreenState extends State<GarageScreen> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF667EEA).withOpacity(0.2),
+                        color: const Color(0xFF667EEA).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: const Color(0xFF667EEA),
@@ -301,7 +311,7 @@ class _GarageScreenState extends State<GarageScreen> {
                               ].join(' '),
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white.withOpacity(0.6),
+                                color: Colors.white.withValues(alpha: 0.6),
                               ),
                             ),
                         ],
@@ -309,30 +319,51 @@ class _GarageScreenState extends State<GarageScreen> {
                     ),
                   ],
                 ),
-                if (vehicle.tankCapacity != null ||
-                    vehicle.epaCombined != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Row(
-                      children: [
-                        if (vehicle.tankCapacity != null)
-                          _buildSpec(
-                            'Tank',
-                            '${vehicle.tankCapacity!.toStringAsFixed(1)} gal',
-                            Icons.local_gas_station,
-                          ),
-                        if (vehicle.tankCapacity != null &&
-                            vehicle.epaCombined != null)
-                          const SizedBox(width: 16),
-                        if (vehicle.epaCombined != null)
-                          _buildSpec(
-                            'EPA',
-                            '${vehicle.epaCombined!.toStringAsFixed(1)} MPG',
-                            Icons.speed,
-                          ),
-                      ],
-                    ),
+                // Stats section
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    children: [
+                      // Tank capacity
+                      if (vehicle.tankCapacity != null)
+                        _buildSpec(
+                          'Tank',
+                          '${vehicle.tankCapacity!.toStringAsFixed(1)} gal',
+                          Icons.local_gas_station,
+                        ),
+                      // EPA Combined
+                      if (vehicle.epaCombined != null)
+                        _buildSpec(
+                          'EPA',
+                          '${vehicle.epaCombined!.toStringAsFixed(1)} MPG',
+                          Icons.speed,
+                        ),
+                      // Actual Combined MPG
+                      if (stats != null && stats.trueMPG > 0)
+                        _buildSpec(
+                          'Combined',
+                          '${stats.trueMPG.toStringAsFixed(1)} MPG',
+                          Icons.show_chart,
+                        ),
+                      // Total fill-ups
+                      if (stats != null && stats.totalFillups > 0)
+                        _buildSpec(
+                          'Fill-ups',
+                          '${stats.totalFillups}',
+                          CupertinoIcons.drop_fill,
+                        ),
+                      // Total miles
+                      if (stats != null && stats.totalMiles > 0)
+                        _buildSpec(
+                          'Miles',
+                          '${stats.totalMiles.toStringAsFixed(0)}',
+                          Icons.straighten,
+                        ),
+                    ],
                   ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -367,6 +398,7 @@ class _GarageScreenState extends State<GarageScreen> {
 
   Widget _buildSpec(String label, String value, IconData icon) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
@@ -378,7 +410,7 @@ class _GarageScreenState extends State<GarageScreen> {
           '$label: ',
           style: TextStyle(
             fontSize: 13,
-            color: Colors.white.withOpacity(0.6),
+            color: Colors.white.withValues(alpha: 0.6),
           ),
         ),
         Text(
@@ -402,7 +434,6 @@ class _GarageScreenState extends State<GarageScreen> {
       );
     }
 
-    // Reconstruct full path from filename
     return FutureBuilder<String>(
       future: _getFullImagePath(imagePath),
       builder: (context, snapshot) {
@@ -416,7 +447,6 @@ class _GarageScreenState extends State<GarageScreen> {
 
         final imageFile = File(snapshot.data!);
         
-        // Check if file exists synchronously first
         if (!imageFile.existsSync()) {
           debugPrint('Vehicle image not found at: ${snapshot.data}');
           return const Icon(
@@ -428,9 +458,9 @@ class _GarageScreenState extends State<GarageScreen> {
 
         return Image.file(
           imageFile,
-          key: ValueKey(snapshot.data), // Add cache-busting key
+          key: ValueKey(snapshot.data),
           fit: BoxFit.cover,
-          cacheWidth: 300, // Optimize memory
+          cacheWidth: 300,
           errorBuilder: (context, error, stackTrace) {
             debugPrint('Error loading vehicle image: $error');
             return const Icon(
