@@ -6,7 +6,9 @@ import '../services/database_service.dart';
 import '../models/fillup_record.dart';
 
 class AddFillupScreen extends StatefulWidget {
-  const AddFillupScreen({super.key});
+  final Map<String, dynamic>? prefillData;
+  
+  const AddFillupScreen({super.key, this.prefillData});
 
   @override
   State<AddFillupScreen> createState() => _AddFillupScreenState();
@@ -14,6 +16,7 @@ class AddFillupScreen extends StatefulWidget {
 
 class _AddFillupScreenState extends State<AddFillupScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _dateController = TextEditingController();
   final _odometerController = TextEditingController();
   final _dteBeforeController = TextEditingController();
   final _dteAfterController = TextEditingController();
@@ -21,6 +24,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
   final _costController = TextEditingController();
   final _locationController = TextEditingController();
   
+  DateTime _selectedDate = DateTime.now();
   double _cityPercent = 50.0;
   bool _isFullTank = true;
   String _fuelGrade = '87 Regular';
@@ -31,7 +35,13 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
   @override
   void initState() {
     super.initState();
+    _dateController.text = _formatDate(_selectedDate);
     _loadActiveVehicle();
+    
+    // Prefill data from receipt scanner if available
+    if (widget.prefillData != null) {
+      _prefillFromReceipt();
+    }
   }
 
   Future<void> _loadActiveVehicle() async {
@@ -39,6 +49,85 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
     setState(() {
       _activeVehicle = vehicle;
     });
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF667EEA),
+              onPrimary: Colors.white,
+              surface: Color(0xFF1A1A1A),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _dateController.text = _formatDate(picked);
+      });
+    }
+  }
+
+  void _prefillFromReceipt() {
+    final data = widget.prefillData!;
+    
+    debugPrint('=== PREFILLING FROM RECEIPT ===');
+    debugPrint('Prefill data: $data');
+    
+    if (data['date'] != null && data['date'] is DateTime) {
+      setState(() {
+        _selectedDate = data['date'];
+        _dateController.text = _formatDate(_selectedDate);
+      });
+      debugPrint('Prefilled date: ${data['date']}');
+    }
+    
+    if (data['gallons'] != null) {
+      _gallonsController.text = data['gallons'].toString();
+      debugPrint('Prefilled gallons: ${data['gallons']}');
+    }
+    
+    if (data['totalCost'] != null) {
+      _costController.text = data['totalCost'].toString();
+      debugPrint('Prefilled cost: ${data['totalCost']}');
+    }
+    
+    if (data['location'] != null) {
+      _locationController.text = data['location'];
+      debugPrint('Prefilled location: ${data['location']}');
+    }
+    
+    if (data['fuelGrade'] != null) {
+      setState(() {
+        _fuelGrade = data['fuelGrade'];
+      });
+      debugPrint('Prefilled fuel grade: ${data['fuelGrade']}');
+    }
+    
+    if (data['paymentMethod'] != null) {
+      setState(() {
+        _paymentMethod = data['paymentMethod'];
+      });
+      debugPrint('Prefilled payment method: ${data['paymentMethod']}');
+    }
+    
+    debugPrint('=== PREFILL COMPLETE ===');
   }
 
   @override
@@ -66,12 +155,78 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Success banner if prefilled from receipt
+                  if (widget.prefillData != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF10B981),
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF10B981),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'RECEIPT SCANNED',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF10B981),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Review and fill in remaining details',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  
                   // Active Vehicle Display
                   if (_activeVehicle != null) _buildActiveVehicleCard(),
                   if (_activeVehicle != null) const SizedBox(height: 24),
                   
                   // Feature Highlight
                   _buildFeatureHighlight(),
+                  const SizedBox(height: 24),
+                  
+                  // Date Field
+                  _buildSectionTitle('Fill-Up Date'),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: _selectDate,
+                    child: AbsorbPointer(
+                      child: _buildTextField(
+                        controller: _dateController,
+                        label: 'Date',
+                        hint: 'Select date',
+                        suffix: Icons.calendar_today,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   
                   // Odometer Reading
@@ -332,7 +487,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
     required String hint,
     TextInputType? keyboardType,
     String? prefix,
-    String? suffix,
+    dynamic suffix, // Can be String or IconData
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,7 +515,8 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
               hintText: hint,
               hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
               prefixText: prefix,
-              suffixText: suffix,
+              suffixText: suffix is String ? suffix : null,
+              suffixIcon: suffix is IconData ? Icon(suffix, color: const Color(0xFF667EEA)) : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -577,7 +733,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('• ', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 16)),
+          Text('â€¢ ', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 16)),
           Expanded(
             child: Text(
               text,
@@ -629,7 +785,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
       final fillup = FillupRecord(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         vehicleId: _activeVehicle!.id,
-        date: DateTime.now(),
+        date: _selectedDate, // Use selected date instead of now
         odometer: currentOdo,
         dteBeforeFillup: _dteBeforeController.text.isNotEmpty 
             ? double.tryParse(_dteBeforeController.text) 
@@ -740,6 +896,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
 
   @override
   void dispose() {
+    _dateController.dispose();
     _odometerController.dispose();
     _dteBeforeController.dispose();
     _dteAfterController.dispose();
