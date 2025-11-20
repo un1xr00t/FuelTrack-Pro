@@ -62,7 +62,6 @@ class _StatsScreenState extends State<StatsScreen> {
         useNativeToolbar: true,
       ),
       body: SafeArea(
-        top: false, // App bar handles top spacing
         child: Container(
           color: const Color(0xFF000000),
           child: _isLoading
@@ -76,7 +75,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   : _stats == null || _stats!.totalFillups == 0
                       ? _buildEmptyState('No Data Yet', 'Add fill-ups to see statistics')
                       : SingleChildScrollView(
-                          padding: const EdgeInsets.only(top: 120, left: 16, right: 16, bottom: 16),
+                          padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -579,7 +578,7 @@ class _StatsScreenState extends State<StatsScreen> {
       children: [
         if (mpgImprovement.abs() > 0.5)
           _buildInsightCard(
-            'ðŸŽ¯ Efficiency Trend',
+            '🎯 Efficiency Trend',
             mpgImprovement > 0
                 ? 'Your MPG has improved by ${mpgImprovement.toStringAsFixed(1)}%'
                 : 'Your MPG has decreased by ${mpgImprovement.abs().toStringAsFixed(1)}%',
@@ -591,14 +590,14 @@ class _StatsScreenState extends State<StatsScreen> {
         if (mpgImprovement.abs() > 0.5) const SizedBox(height: 12),
         if (epaComparison != null && _stats!.averageCostPerMile < 0.12)
           _buildInsightCard(
-            'ðŸ’° Cost Optimization',
+            '💰 Cost Optimization',
             'You\'re spending less than average',
             'Your efficient driving saves money',
             const Color(0xFF667EEA),
           ),
         if (epaComparison != null && _stats!.averageCostPerMile < 0.12) const SizedBox(height: 12),
         _buildInsightCard(
-          'ðŸ“ˆ Best Performance',
+          '📈 Best Performance',
           'Your best efficiency: ${_stats!.bestMPG.toStringAsFixed(1)} MPG',
           _stats!.cityDrivingPercent < 50 ? 'Mostly highway driving' : 'Great city efficiency',
           const Color(0xFFF59E0B),

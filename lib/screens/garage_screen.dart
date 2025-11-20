@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:path_provider/path_provider.dart';
 import '../services/database_service.dart';
 import '../models/fillup_record.dart';
 import 'add_vehicle_screen.dart';
@@ -33,15 +34,6 @@ class _GarageScreenState extends State<GarageScreen> {
     try {
       final vehicles = await DatabaseService.instance.getAllVehicles();
       final activeVehicle = await DatabaseService.instance.getActiveVehicle();
-
-      // Debug: Log vehicle image paths
-      for (var vehicle in vehicles) {
-        debugPrint('Vehicle: ${vehicle.name}, ImagePath: ${vehicle.imagePath}');
-        if (vehicle.imagePath != null && vehicle.imagePath!.isNotEmpty) {
-          final imageFile = File(vehicle.imagePath!);
-          debugPrint('  Image exists: ${imageFile.existsSync()}');
-        }
-      }
 
       setState(() {
         _vehicles = vehicles;
@@ -410,30 +402,51 @@ class _GarageScreenState extends State<GarageScreen> {
       );
     }
 
-    final imageFile = File(imagePath);
-    
-    // Check if file exists synchronously first
-    if (!imageFile.existsSync()) {
-      debugPrint('Vehicle image not found at: $imagePath');
-      return const Icon(
-        Icons.directions_car,
-        color: Color(0xFF667EEA),
-        size: 40,
-      );
-    }
+    // Reconstruct full path from filename
+    return FutureBuilder<String>(
+      future: _getFullImagePath(imagePath),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Icon(
+            Icons.directions_car,
+            color: Color(0xFF667EEA),
+            size: 40,
+          );
+        }
 
-    return Image.file(
-      imageFile,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint('Error loading vehicle image: $error');
-        return const Icon(
-          Icons.directions_car,
-          color: Color(0xFF667EEA),
-          size: 40,
+        final imageFile = File(snapshot.data!);
+        
+        // Check if file exists synchronously first
+        if (!imageFile.existsSync()) {
+          debugPrint('Vehicle image not found at: ${snapshot.data}');
+          return const Icon(
+            Icons.directions_car,
+            color: Color(0xFF667EEA),
+            size: 40,
+          );
+        }
+
+        return Image.file(
+          imageFile,
+          key: ValueKey(snapshot.data), // Add cache-busting key
+          fit: BoxFit.cover,
+          cacheWidth: 300, // Optimize memory
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('Error loading vehicle image: $error');
+            return const Icon(
+              Icons.directions_car,
+              color: Color(0xFF667EEA),
+              size: 40,
+            );
+          },
         );
       },
     );
+  }
+
+  Future<String> _getFullImagePath(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/vehicle_images/$fileName';
   }
 
   Future<void> _selectVehicle(VehicleProfile vehicle) async {

@@ -46,7 +46,15 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       _epaCityController.text = widget.vehicle!.epaCity?.toString() ?? '';
       _epaHighwayController.text = widget.vehicle!.epaHighway?.toString() ?? '';
       _epaCombinedController.text = widget.vehicle!.epaCombined?.toString() ?? '';
-      _existingImagePath = widget.vehicle!.imagePath;
+      
+      // Migrate old absolute paths to new relative paths (just filename)
+      if (widget.vehicle!.imagePath != null && widget.vehicle!.imagePath!.contains('/')) {
+        // Extract filename from old absolute path
+        _existingImagePath = widget.vehicle!.imagePath!.split('/').last;
+        debugPrint('Migrated image path from absolute to relative: $_existingImagePath');
+      } else {
+        _existingImagePath = widget.vehicle!.imagePath;
+      }
     }
   }
 
@@ -86,7 +94,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       // Verify the file was saved
       if (await savedImage.exists()) {
         debugPrint('Image saved successfully at: ${savedImage.path}');
-        return savedImage.path;
+        // Return ONLY the filename, not the full path - we'll reconstruct it when loading
+        return fileName;
       } else {
         debugPrint('Image save verification failed');
         return null;
@@ -278,7 +287,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     if (_imageFile != null) {
       return Image.file(
         _imageFile!,
+        key: ValueKey(_imageFile!.path),
         fit: BoxFit.cover,
+        cacheWidth: 300,
         errorBuilder: (context, error, stackTrace) {
           debugPrint('Error loading new image: $error');
           return _buildPlaceholder();
@@ -287,22 +298,38 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     }
 
     if (_existingImagePath != null && _existingImagePath!.isNotEmpty) {
-      final imageFile = File(_existingImagePath!);
-      if (imageFile.existsSync()) {
-        return Image.file(
-          imageFile,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('Error loading existing image: $error');
-            return _buildPlaceholder();
-          },
-        );
-      } else {
-        debugPrint('Existing image file not found at: $_existingImagePath');
-      }
+      // Reconstruct full path from filename
+      return FutureBuilder<String>(
+        future: _getFullImagePath(_existingImagePath!),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            final imageFile = File(snapshot.data!);
+            if (imageFile.existsSync()) {
+              return Image.file(
+                imageFile,
+                key: ValueKey(snapshot.data),
+                fit: BoxFit.cover,
+                cacheWidth: 300,
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('Error loading existing image: $error');
+                  return _buildPlaceholder();
+                },
+              );
+            } else {
+              debugPrint('Existing image file not found at: ${snapshot.data}');
+            }
+          }
+          return _buildPlaceholder();
+        },
+      );
     }
 
     return _buildPlaceholder();
+  }
+
+  Future<String> _getFullImagePath(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/vehicle_images/$fileName';
   }
 
   Widget _buildPlaceholder() {
@@ -412,7 +439,25 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
       // Save new image if user selected one
       if (_imageFile != null) {
+        debugPrint('=== SAVING NEW IMAGE ===');
+        debugPrint('Source file: ${_imageFile!.path}');
+        debugPrint('Source exists: ${_imageFile!.existsSync()}');
+        
         imagePath = await _saveImage(_imageFile!);
+        
+        debugPrint('Saved image path: $imagePath');
+        if (imagePath != null) {
+          final savedFile = File(imagePath);
+          debugPrint('Saved file exists: ${savedFile.existsSync()}');
+          if (savedFile.existsSync()) {
+            debugPrint('Saved file size: ${savedFile.lengthSync()} bytes');
+          }
+        }
+      } else if (_existingImagePath != null) {
+        debugPrint('=== KEEPING EXISTING IMAGE ===');
+        debugPrint('Existing path: $_existingImagePath');
+        final existingFile = File(_existingImagePath!);
+        debugPrint('Existing file exists: ${existingFile.existsSync()}');
       }
 
       if (_isEditing) {

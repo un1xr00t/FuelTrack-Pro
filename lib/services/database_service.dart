@@ -1,4 +1,5 @@
 // lib/services/database_service.dart
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/fillup_record.dart';
@@ -96,6 +97,11 @@ class DatabaseService {
 
   Future<VehicleProfile> createVehicle(VehicleProfile vehicle) async {
     final db = await database;
+    
+    debugPrint('=== DATABASE CREATE VEHICLE ===');
+    debugPrint('Vehicle name: ${vehicle.name}');
+    debugPrint('Image path to save: ${vehicle.imagePath}');
+    
     await db.insert('vehicles', {
       'id': vehicle.id,
       'name': vehicle.name,
@@ -110,6 +116,8 @@ class DatabaseService {
       'createdAt': vehicle.createdAt.toIso8601String(),
       'imagePath': vehicle.imagePath,
     });
+    
+    debugPrint('Vehicle saved to database');
     return vehicle;
   }
 
@@ -119,6 +127,13 @@ class DatabaseService {
       'vehicles',
       orderBy: 'createdAt DESC',
     );
+    
+    debugPrint('=== DATABASE GET ALL VEHICLES ===');
+    debugPrint('Found ${result.length} vehicles');
+    for (var vehicleData in result) {
+      debugPrint('  - ${vehicleData['name']}: imagePath = ${vehicleData['imagePath']}');
+    }
+    
     return result.map((json) => VehicleProfile.fromJson(json)).toList();
   }
 
