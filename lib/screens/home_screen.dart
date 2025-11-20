@@ -1,7 +1,9 @@
 // lib/screens/home_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:path_provider/path_provider.dart';
 import '../services/database_service.dart';
 import '../models/fillup_record.dart';
 
@@ -54,6 +56,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<String> _getFullImagePath(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/vehicle_images/$fileName';
+  }
+
   @override
   Widget build(BuildContext context) {
     return AdaptiveScaffold(
@@ -75,12 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       SliverToBoxAdapter(
                         child: Column(
                           children: [
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 20),
+                            // Vehicle name and mileage
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24.0,
-                                vertical: 16.0,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
@@ -88,23 +93,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                     _activeVehicle!.name,
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 32,
+                                      fontSize: 28,
                                       fontWeight: FontWeight.bold,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    '${_stats?.totalMiles.toStringAsFixed(0) ?? '0'} miles tracked',
+                                    'Odometer • ${_stats?.totalMiles.toStringAsFixed(0) ?? '0'} mi',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.6),
-                                      fontSize: 16,
+                                      fontSize: 14,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(height: 24),
+                            
+                            // Vehicle Image Display (Toyota-style)
+                            _buildVehicleDisplay(),
+                            
                             const SizedBox(height: 8),
                           ],
                         ),
@@ -130,6 +140,114 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
+      ),
+    );
+  }
+
+  Widget _buildVehicleDisplay() {
+    return Container(
+      height: 280,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A).withOpacity(0.5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF667EEA).withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Vehicle Image
+          if (_activeVehicle?.imagePath != null)
+            FutureBuilder<String>(
+              future: _getFullImagePath(_activeVehicle!.imagePath!),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final imageFile = File(snapshot.data!);
+                  if (imageFile.existsSync()) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Image.file(
+                          imageFile,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildPlaceholderVehicle();
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                }
+                return _buildPlaceholderVehicle();
+              },
+            )
+          else
+            _buildPlaceholderVehicle(),
+          
+          // Info button overlay (bottom center)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A).withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF667EEA).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: const Color(0xFF667EEA),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Info',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderVehicle() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.directions_car,
+            size: 100,
+            color: const Color(0xFF667EEA).withOpacity(0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Add vehicle photo in Garage',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.4),
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -567,7 +685,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 14,
                       color: isFullTank
                           ? const Color(0xFF10B981)
-                          : const Color(0xFFF59E0B),
+                          : const Color(0xFDF59E0B),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -577,7 +695,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.w600,
                         color: isFullTank
                             ? const Color(0xFF10B981)
-                            : const Color(0xFFF59E0B),
+                            : const Color(0xFDF59E0B),
                       ),
                     ),
                   ],
