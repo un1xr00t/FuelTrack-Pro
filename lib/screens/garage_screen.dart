@@ -89,6 +89,7 @@ class _GarageScreenState extends State<GarageScreen> {
         useNativeToolbar: true,
       ),
       body: SafeArea(
+        top: false, // Don't apply SafeArea to top since app bar handles it
         child: Container(
           color: const Color(0xFF000000),
           child: _isLoading
@@ -101,7 +102,7 @@ class _GarageScreenState extends State<GarageScreen> {
                   ? _buildEmptyState()
                   : ListView.builder(
                       padding: const EdgeInsets.only(
-                        top: 24,
+                        top: 120,
                         left: 24,
                         right: 24,
                         bottom: 140,

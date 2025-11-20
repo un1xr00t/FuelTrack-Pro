@@ -112,13 +112,14 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         ],
       ),
       body: SafeArea(
+        top: false, // App bar handles top spacing
         child: Material(
           color: const Color(0xFF000000),
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(
-                top: 24,
+                top: 130,
                 left: 16,
                 right: 16,
                 bottom: 16,

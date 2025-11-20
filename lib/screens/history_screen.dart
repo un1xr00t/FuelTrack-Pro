@@ -77,6 +77,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         useNativeToolbar: true,
       ),
       body: SafeArea(
+        top: false, // App bar handles top spacing
         child: Container(
           color: const Color(0xFF000000),
           child: _isLoading
@@ -90,7 +91,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   : _fillups.isEmpty
                       ? _buildEmptyState('No Fill-Ups Yet', 'Tap + to add your first fill-up')
                       : ListView(
-                          padding: const EdgeInsets.only(top: 16),
+                          padding: const EdgeInsets.only(top: 120),
                           children: [
                             _buildRecentEfficiency(),
                             Padding(
@@ -355,7 +356,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${fillup.gallons.toStringAsFixed(1)} gal • \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' • ${fillup.location}' : ''}',
+                        '${fillup.gallons.toStringAsFixed(1)} gal â€¢ \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' â€¢ ${fillup.location}' : ''}',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.white.withOpacity(0.6),
