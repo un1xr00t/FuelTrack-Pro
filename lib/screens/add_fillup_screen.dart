@@ -56,12 +56,13 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
         ],
       ),
       body: SafeArea(
+        top: false, // App bar handles top spacing
         child: Material(
           color: const Color(0xFF000000),
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(top: 130, left: 16, right: 16, bottom: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -74,7 +75,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                   const SizedBox(height: 24),
                   
                   // Odometer Reading
-                  _buildSectionTitle('📍 Odometer Reading'),
+                  _buildSectionTitle('Odometer Reading'),
                   const SizedBox(height: 12),
                   _buildTextField(
                     controller: _odometerController,
@@ -86,7 +87,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                   const SizedBox(height: 24),
                   
                   // DTE Section (Optional)
-                  _buildSectionTitle('📊 Distance to Empty (Optional)'),
+                  _buildSectionTitle('Distance to Empty (Optional)'),
                   const SizedBox(height: 8),
                   _buildInfoBox(
                     'Real-Time Monitoring',
@@ -112,7 +113,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                   const SizedBox(height: 24),
                   
                   // Fuel Details
-                  _buildSectionTitle('⛽ Fuel Details'),
+                  _buildSectionTitle('Fuel Details'),
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -140,19 +141,19 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                   const SizedBox(height: 24),
                   
                   // City/Highway Split
-                  _buildSectionTitle('🚗 Driving Split'),
+                  _buildSectionTitle('Driving Split'),
                   const SizedBox(height: 12),
                   _buildCityHighwaySlider(),
                   const SizedBox(height: 24),
                   
                   // Fill Type
-                  _buildSectionTitle('⛽ Fill Type'),
+                  _buildSectionTitle('Fill Type'),
                   const SizedBox(height: 12),
                   _buildFillTypeToggle(),
                   const SizedBox(height: 24),
                   
                   // Additional Details
-                  _buildSectionTitle('📝 Additional Details'),
+                  _buildSectionTitle('Additional Details'),
                   const SizedBox(height: 12),
                   _buildDropdown(
                     label: 'Fuel Grade',

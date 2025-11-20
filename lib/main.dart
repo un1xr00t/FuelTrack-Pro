@@ -203,20 +203,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         },
       ),
       floatingActionButton: _selectedIndex != 3
-          ? AdaptiveFloatingActionButton(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddFillupScreen(),
-                  ),
-                );
-                if (result == true && mounted) {
-                  setState(() {});
-                }
-              },
-              backgroundColor: const Color(0xFF667EEA),
-              child: const Icon(Icons.add, size: 32, color: Colors.white),
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 70), // Moved up above navbar
+              child: AdaptiveFloatingActionButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddFillupScreen(),
+                    ),
+                  );
+                  if (result == true && mounted) {
+                    setState(() {});
+                  }
+                },
+                backgroundColor: const Color(0xFF667EEA),
+                child: const Icon(Icons.add, size: 32, color: Colors.white),
+              ),
             )
           : null,
     );
