@@ -34,12 +34,22 @@ class _GarageScreenState extends State<GarageScreen> {
       final vehicles = await DatabaseService.instance.getAllVehicles();
       final activeVehicle = await DatabaseService.instance.getActiveVehicle();
 
+      // Debug: Log vehicle image paths
+      for (var vehicle in vehicles) {
+        debugPrint('Vehicle: ${vehicle.name}, ImagePath: ${vehicle.imagePath}');
+        if (vehicle.imagePath != null && vehicle.imagePath!.isNotEmpty) {
+          final imageFile = File(vehicle.imagePath!);
+          debugPrint('  Image exists: ${imageFile.existsSync()}');
+        }
+      }
+
       setState(() {
         _vehicles = vehicles;
         _activeVehicle = activeVehicle;
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('Error loading vehicles: $e');
       setState(() {
         _isLoading = false;
       });
@@ -244,17 +254,7 @@ class _GarageScreenState extends State<GarageScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(14),
-                        child: vehicle.imagePath != null &&
-                                File(vehicle.imagePath!).existsSync()
-                            ? Image.file(
-                                File(vehicle.imagePath!),
-                                fit: BoxFit.cover,
-                              )
-                            : const Icon(
-                                Icons.directions_car,
-                                color: Color(0xFF667EEA),
-                                size: 40,
-                              ),
+                        child: _buildVehicleImage(vehicle.imagePath),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -397,6 +397,41 @@ class _GarageScreenState extends State<GarageScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildVehicleImage(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return const Icon(
+        Icons.directions_car,
+        color: Color(0xFF667EEA),
+        size: 40,
+      );
+    }
+
+    final imageFile = File(imagePath);
+    
+    // Check if file exists synchronously first
+    if (!imageFile.existsSync()) {
+      debugPrint('Vehicle image not found at: $imagePath');
+      return const Icon(
+        Icons.directions_car,
+        color: Color(0xFF667EEA),
+        size: 40,
+      );
+    }
+
+    return Image.file(
+      imageFile,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('Error loading vehicle image: $error');
+        return const Icon(
+          Icons.directions_car,
+          color: Color(0xFF667EEA),
+          size: 40,
+        );
+      },
     );
   }
 

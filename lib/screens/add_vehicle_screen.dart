@@ -70,15 +70,27 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final vehicleImagesDir = Directory('${directory.path}/vehicle_images');
+      
+      // Ensure directory exists
       if (!await vehicleImagesDir.exists()) {
         await vehicleImagesDir.create(recursive: true);
+        debugPrint('Created vehicle_images directory at: ${vehicleImagesDir.path}');
       }
 
       final fileName = '${DateTime.now().millisecondsSinceEpoch}${path_helper.extension(imageFile.path)}';
       final savedImage = File('${vehicleImagesDir.path}/$fileName');
+      
+      // Copy the image file
       await imageFile.copy(savedImage.path);
-
-      return savedImage.path;
+      
+      // Verify the file was saved
+      if (await savedImage.exists()) {
+        debugPrint('Image saved successfully at: ${savedImage.path}');
+        return savedImage.path;
+      } else {
+        debugPrint('Image save verification failed');
+        return null;
+      }
     } catch (e) {
       debugPrint('Error saving image: $e');
       return null;
@@ -240,34 +252,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(18),
-                child: _imageFile != null
-                    ? Image.file(
-                        _imageFile!,
-                        fit: BoxFit.cover,
-                      )
-                    : _existingImagePath != null && File(_existingImagePath!).existsSync()
-                        ? Image.file(
-                            File(_existingImagePath!),
-                            fit: BoxFit.cover,
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.add_a_photo,
-                                size: 40,
-                                color: Color(0xFF667EEA),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Add Photo',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
+                child: _buildImageDisplay(),
               ),
             ),
           ),
@@ -284,6 +269,59 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImageDisplay() {
+    // Priority: new selected image > existing image > placeholder
+    if (_imageFile != null) {
+      return Image.file(
+        _imageFile!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading new image: $error');
+          return _buildPlaceholder();
+        },
+      );
+    }
+
+    if (_existingImagePath != null && _existingImagePath!.isNotEmpty) {
+      final imageFile = File(_existingImagePath!);
+      if (imageFile.existsSync()) {
+        return Image.file(
+          imageFile,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('Error loading existing image: $error');
+            return _buildPlaceholder();
+          },
+        );
+      } else {
+        debugPrint('Existing image file not found at: $_existingImagePath');
+      }
+    }
+
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(
+          Icons.add_a_photo,
+          size: 40,
+          color: Color(0xFF667EEA),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Add Photo',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.6),
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 
