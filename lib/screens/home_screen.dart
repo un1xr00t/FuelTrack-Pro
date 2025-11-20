@@ -6,6 +6,7 @@ import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/database_service.dart';
 import '../models/fillup_record.dart';
+import '../screens/add_vehicle_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -100,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Odometer • ${_stats?.totalMiles.toStringAsFixed(0) ?? '0'} mi',
+                                    'Odometer â€¢ ${_stats?.totalMiles.toStringAsFixed(0) ?? '0'} mi',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.6),
                                       fontSize: 14,
@@ -192,34 +193,47 @@ class _HomeScreenState extends State<HomeScreen> {
             left: 0,
             right: 0,
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A).withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF667EEA).withOpacity(0.3),
-                    width: 1,
+              child: GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddVehicleScreen(vehicle: _activeVehicle),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadData();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1A).withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF667EEA).withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: const Color(0xFF667EEA),
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Info',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: const Color(0xFF667EEA),
+                        size: 18,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Text(
+                        'Info',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -488,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
         if (_stats != null && _stats!.totalFillups > 0) ...[
           _buildInsightCard(
-            '🎯 Driving Efficiency',
+            'ðŸŽ¯ Driving Efficiency',
             '${cityPercent.toStringAsFixed(0)}% city / ${(100 - cityPercent).toStringAsFixed(0)}% highway',
             cityPercent > 70
                 ? 'Mostly city driving'
@@ -500,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           if (epaComparison != null)
             _buildInsightCard(
-              '📊 Compared to EPA',
+              'ðŸ“Š Compared to EPA',
               epaComparison > 0
                   ? '+${epaComparison.toStringAsFixed(1)} MPG above rating'
                   : '${epaComparison.toStringAsFixed(1)} MPG below rating',
@@ -511,14 +525,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           if (epaComparison != null) const SizedBox(height: 12),
           _buildInsightCard(
-            '💡 Total Fill-Ups',
+            'ðŸ’¡ Total Fill-Ups',
             '${_stats!.totalFillups} recorded',
             'Keep tracking for better insights!',
             const Color(0xFFF59E0B),
           ),
         ] else ...[
           _buildInsightCard(
-            '🚀 Get Started',
+            'ðŸš€ Get Started',
             'No fill-ups yet',
             'Add your first fill-up to start tracking!',
             const Color(0xFF667EEA),
@@ -671,7 +685,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${gallons.toStringAsFixed(1)} gal • \$${cost.toStringAsFixed(2)}${location != null ? ' • $location' : ''}',
+                  '${gallons.toStringAsFixed(1)} gal â€¢ \$${cost.toStringAsFixed(2)}${location != null ? ' â€¢ $location' : ''}',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withOpacity(0.6),
