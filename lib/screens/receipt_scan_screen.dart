@@ -92,8 +92,14 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
           });
         } else {
           debugPrint('SUCCESS: Navigating to add fillup screen with data');
-          // Navigate to add fillup with pre-filled data (use push instead of pushReplacement)
-          Navigator.push(
+          
+          // Reset processing state before navigation
+          setState(() {
+            _isProcessing = false;
+          });
+          
+          // Navigate to add fillup with pre-filled data
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => AddFillupScreen(
@@ -101,6 +107,11 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               ),
             ),
           );
+          
+          // If fillup was saved successfully, go back to home
+          if (result == true && mounted) {
+            Navigator.pop(context, true);
+          }
         }
       }
     } catch (e, stackTrace) {

@@ -751,20 +751,42 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
 
   Future<void> _saveFillup() async {
     if (_activeVehicle == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No active vehicle selected. Please add a vehicle first.'),
-          backgroundColor: Colors.red,
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text('No Active Vehicle', style: TextStyle(color: Colors.white)),
+          content: const Text(
+            'Please add a vehicle first.',
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK', style: TextStyle(color: Color(0xFF667EEA))),
+            ),
+          ],
         ),
       );
       return;
     }
 
     if (_odometerController.text.isEmpty || _gallonsController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter odometer reading and gallons'),
-          backgroundColor: Colors.red,
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text('Missing Information', style: TextStyle(color: Colors.white)),
+          content: const Text(
+            'Please enter odometer reading and gallons',
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK', style: TextStyle(color: Color(0xFF667EEA))),
+            ),
+          ],
         ),
       );
       return;
@@ -878,10 +900,21 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving fill-up: $e'),
-            backgroundColor: Colors.red,
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1A1A),
+            title: const Text('Error', style: TextStyle(color: Colors.white)),
+            content: Text(
+              'Error saving fill-up: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK', style: TextStyle(color: Color(0xFF667EEA))),
+              ),
+            ],
           ),
         );
       }
