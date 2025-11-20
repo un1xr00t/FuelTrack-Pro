@@ -5,6 +5,8 @@ import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import '../services/database_service.dart';
 import '../models/fillup_record.dart';
 import 'package:intl/intl.dart';
+import 'fillup_detail_screen.dart';
+import 'edit_fillup_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -308,109 +310,199 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildFillupItem(FillupRecord fillup, double mpg) {
     final dateStr = DateFormat('MMM d, yyyy').format(fillup.date);
     
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Navigate to detail screen or show details
-            _showFillupDetails(fillup, mpg);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Left side - Icon
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF667EEA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.drop_fill,
-                    color: Colors.white,
-                    size: 24,
+    return Dismissible(
+      key: Key(fillup.id),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          // Swipe right - Edit
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EditFillupScreen(fillup: fillup),
+            ),
+          );
+          if (result == true) {
+            await _loadData();
+          }
+          return false; // Don't dismiss
+        } else {
+          // Swipe left - Delete
+          return await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A1A),
+              title: const Text(
+                'Delete Fill-Up?',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Text(
+                'This will permanently delete this fill-up record. This cannot be undone.',
+                style: TextStyle(color: Colors.white.withOpacity(0.8)),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Color(0xFF667EEA)),
                   ),
                 ),
-                const SizedBox(width: 16),
-                
-                // Middle - Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dateStr,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${fillup.gallons.toStringAsFixed(1)} gal â€¢ \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' â€¢ ${fillup.location}' : ''}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withOpacity(0.6),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            fillup.isFullTank ? Icons.local_gas_station : Icons.warning,
-                            size: 14,
-                            color: fillup.isFullTank
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFF59E0B),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('DELETE'),
+                ),
+              ],
+            ),
+          );
+        }
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF667EEA),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(
+          Icons.edit,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
+      onDismissed: (direction) async {
+        if (direction == DismissDirection.endToStart) {
+          // Delete was confirmed
+          try {
+            await DatabaseService.instance.deleteFillup(fillup.id);
+            await _loadData(); // Reload data after deletion
+          } catch (e) {
+            debugPrint('Error deleting fill-up: $e');
+            if (mounted) {
+              await _loadData(); // Reload to restore the item
+            }
+          }
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              // Navigate to detail screen or show details
+              _showFillupDetails(fillup, mpg);
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Left side - Icon
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF667EEA),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.drop_fill,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  
+                  // Middle - Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dateStr,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            fillup.isFullTank ? 'Full Tank' : 'Partial Fill',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${fillup.gallons.toStringAsFixed(1)} gal • \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' • ${fillup.location}' : ''}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              fillup.isFullTank ? Icons.local_gas_station : Icons.warning,
+                              size: 14,
                               color: fillup.isFullTank
                                   ? const Color(0xFF10B981)
                                   : const Color(0xFFF59E0B),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              fillup.isFullTank ? 'Full Tank' : 'Partial Fill',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: fillup.isFullTank
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFDF59E0B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Right side - MPG
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        mpg > 0 ? mpg.toStringAsFixed(1) : '--',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF667EEA),
+                        ),
+                      ),
+                      Text(
+                        'MPG',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
                       ),
                     ],
                   ),
-                ),
-                
-                // Right side - MPG
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      mpg > 0 ? mpg.toStringAsFixed(1) : '--',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF667EEA),
-                      ),
-                    ),
-                    Text(
-                      'MPG',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -418,68 +510,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  void _showFillupDetails(FillupRecord fillup, double mpg) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text(
-          'Fill-Up Details',
-          style: TextStyle(color: Colors.white),
+  Future<void> _showFillupDetails(FillupRecord fillup, double mpg) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FillupDetailScreen(
+          fillup: fillup,
+          mpg: mpg,
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Date', DateFormat('MMM d, yyyy h:mm a').format(fillup.date)),
-            _buildDetailRow('Odometer', '${fillup.odometer.toStringAsFixed(1)} mi'),
-            _buildDetailRow('Gallons', '${fillup.gallons.toStringAsFixed(2)} gal'),
-            _buildDetailRow('Cost', '\$${fillup.totalCost.toStringAsFixed(2)}'),
-            _buildDetailRow('Price/Gal', '\$${fillup.pricePerGallon.toStringAsFixed(2)}'),
-            if (mpg > 0) _buildDetailRow('MPG', mpg.toStringAsFixed(1)),
-            _buildDetailRow('Fuel Grade', fillup.fuelGrade),
-            _buildDetailRow('Fill Type', fillup.isFullTank ? 'Full Tank' : 'Partial'),
-            _buildDetailRow('City/Highway', '${fillup.cityDrivingPercent.toInt()}% / ${(100 - fillup.cityDrivingPercent).toInt()}%'),
-            if (fillup.location != null) _buildDetailRow('Location', fillup.location!),
-            if (fillup.paymentMethod != null) _buildDetailRow('Payment', fillup.paymentMethod!),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'CLOSE',
-              style: TextStyle(color: Color(0xFF667EEA)),
-            ),
-          ),
-        ],
       ),
     );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withOpacity(0.6),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
+    
+    // If deleted, reload data
+    if (result == true) {
+      await _loadData();
+    }
   }
 }
