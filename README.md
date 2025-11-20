@@ -1,159 +1,192 @@
 # FuelTrack Pro 🚗⛽
 
-A modern, accurate fuel economy tracking app built with Flutter that uses the **gold standard tank-to-tank method** for MPG calculations. Features adaptive UI that seamlessly transitions between iOS and Android with native-feeling interfaces.
+A modern, accurate fuel economy tracking app built with Flutter that uses the **gold standard tank-to-tank method** for MPG calculations. Features receipt scanning with OCR, multi-vehicle support, and comprehensive analytics with an adaptive UI that seamlessly transitions between iOS and Android.
 
-## 🎯 Key Features
+## 🎯 What It Does
 
-### Accurate Fuel Tracking
-- **Tank-to-Tank Method**: The scientifically accurate way to calculate real-world MPG
-- **Full vs Partial Fills**: Smart tracking that separates partial fills for data accuracy
-- **DTE Monitoring**: Optional Distance-to-Empty tracking for real-time efficiency insights
-- **Detailed Fill-Up Records**: Track gallons, costs, locations, fuel grades, and payment methods
+FuelTrack Pro helps you track your vehicle's real-world fuel economy with scientific accuracy. Unlike apps that rely on unreliable DTE (Distance to Empty) sensors or estimates, we use the proven tank-to-tank calculation method that matches EPA testing standards.
 
-### Comprehensive Analytics
-- **Real MPG vs EPA Ratings**: See how your actual fuel economy compares
+### Core Features
+
+#### 📊 Accurate Fuel Tracking
+- **Tank-to-Tank Method**: The gold standard for MPG calculation
+```
+  MPG = (Current Odometer - Previous Odometer) / Gallons Added
+```
+- **Smart Fill Detection**: Automatically separates full tank fills from partial fills for data accuracy
+- **Optional DTE Monitoring**: Track Distance-to-Empty for real-time insights between fill-ups (not used for historical accuracy)
+- **Detailed Records**: Store gallons, costs, locations, fuel grades, payment methods, and driving conditions
+
+#### 📸 Receipt Scanning (OCR)
+- **Auto-Extract Data**: Snap a photo of your gas receipt and automatically extract:
+  - Date and time
+  - Gallons purchased
+  - Total cost
+  - Price per gallon
+  - Fuel grade
+  - Station location
+- **Smart Parsing**: Advanced algorithms handle various receipt formats from different gas stations
+- **Manual Override**: Review and edit any extracted data before saving
+
+#### 🚗 Multi-Vehicle Management
+- **Unlimited Vehicles**: Track multiple cars, trucks, motorcycles
+- **Vehicle Profiles**: Store make, model, year, EPA ratings, tank capacity
+- **Vehicle Photos**: Add custom images for each vehicle
+- **Quick Switching**: Easily switch between vehicles to log fill-ups
+- **Individual Analytics**: Each vehicle maintains its own complete fuel history and statistics
+
+#### 📈 Comprehensive Analytics
+- **Real MPG vs EPA Ratings**: See how your actual fuel economy compares to manufacturer estimates
 - **City/Highway Split Analysis**: Track driving patterns and their impact on efficiency
-- **Cost Tracking**: Monitor fuel expenses, cost per gallon, and cost per mile
+- **Cost Tracking**: Monitor fuel expenses, average cost per gallon, and cost per mile
 - **Trend Visualization**: Beautiful charts showing MPG trends over time
 - **Best/Worst Performance**: Identify your most and least efficient fill-ups
+- **Efficiency Insights**: Track improvements or declines in fuel economy with smart alerts
 
-### Smart Insights
-- **Efficiency Trends**: Track improvements or declines in fuel economy
-- **Cost Optimization**: Compare your costs against average drivers
+#### 💡 Smart Insights
 - **Driving Style Analysis**: Understand how your habits affect fuel consumption
-- **Maintenance Alerts**: Get notified of efficiency drops that may indicate issues
+- **Cost Optimization**: Compare your costs and efficiency against EPA ratings
+- **Efficiency Trends**: Monitor patterns and receive alerts for unusual drops
+- **Maintenance Indicators**: Spot efficiency drops that may indicate vehicle issues
 
 ### Modern UI/UX
-- **Adaptive Design**: Native iOS Cupertino and Android Material Design
+- **Adaptive Design**: Native iOS Cupertino and Android Material Design interfaces
 - **Dark Theme**: Beautiful dark mode with liquid glass aesthetics
-- **Smooth Animations**: Fluid transitions and interactions
-- **Intuitive Navigation**: Bottom tab navigation with floating action button
-
-## 📱 Screenshots
-
-> Coming soon - Add your screenshots here
-
-## 🛠 Tech Stack
-
-- **Framework**: Flutter 3.x
-- **UI Package**: [adaptive_platform_ui](https://pub.dev/packages/adaptive_platform_ui)
-- **Architecture**: Clean architecture with separated concerns
-- **State Management**: StatefulWidget (expandable to Provider/Riverpod)
-- **Platform Support**: iOS, Android (with native platform adaptations)
-
-## 📦 Installation
-
-### Prerequisites
-- Flutter SDK (3.0 or higher)
-- Dart SDK (3.0 or higher)
-- iOS: Xcode 14+ (for iOS development)
-- Android: Android Studio with SDK 21+
-
-### Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/fueltrack-pro.git
-   cd fueltrack-pro
-   ```
-
-2. **Install dependencies**
-   ```bash
-   flutter pub get
-   ```
-
-3. **Run the app**
-   ```bash
-   # For iOS
-   flutter run -d ios
-   
-   # For Android
-   flutter run -d android
-   ```
-
-## 🏗 Project Structure
-
-```
-lib/
-├── main.dart                    # App entry point & navigation
-├── models/
-│   └── fillup_record.dart       # Data models for fill-ups and vehicle profiles
-└── screens/
-    ├── home_screen.dart         # Dashboard with key stats
-    ├── add_fillup_screen.dart   # Add new fill-up form
-    ├── history_screen.dart      # Fill-up history list
-    └── stats_screen.dart        # Detailed analytics and charts
-```
+- **Smooth Animations**: Fluid transitions and interactions throughout
+- **Intuitive Navigation**: Bottom tab navigation with quick-access floating action buttons
+- **Swipe Actions**: Edit or delete fill-ups with intuitive swipe gestures
 
 ## 🎨 Design Philosophy
 
-### Accurate MPG Calculation
+### Why Tank-to-Tank is Superior
+
 This app uses the **tank-to-tank method**, which is the most accurate way to calculate real-world MPG:
 
+**The Method:**
 ```
 MPG = (Current Odometer - Previous Odometer) / Gallons Added
 ```
 
-This method:
-- ✅ Eliminates DTE sensor inaccuracies
-- ✅ Accounts for real-world conditions
-- ✅ Provides consistent, comparable data
+**Why It Works:**
+- ✅ Eliminates DTE sensor inaccuracies (sensors can be off by 10-20%)
+- ✅ Accounts for real-world conditions (weather, traffic, terrain)
+- ✅ Provides consistent, comparable data across all vehicles
 - ✅ Matches EPA testing methodology
+- ✅ Only requires two data points: odometer reading and gallons added
 
-### Optional DTE Tracking
-While not used for historical accuracy, DTE values are tracked for:
+**Optional DTE Tracking:**
+While not used for historical accuracy, DTE values are optionally tracked for:
 - Real-time efficiency monitoring between fill-ups
 - Predicting range on current tank
 - Identifying sudden efficiency changes
 - Early warning of potential issues
 
-## 🚀 Roadmap
+## 🛠 Tech Stack
 
-- [ ] Local database persistence (SQLite)
-- [ ] Multiple vehicle support
+- **Framework**: Flutter 3.x with Dart 3.x
+- **UI Package**: [adaptive_platform_ui](https://pub.dev/packages/adaptive_platform_ui) for seamless platform adaptation
+- **Database**: SQLite with sqflite for local data persistence
+- **OCR**: Google ML Kit Text Recognition for receipt scanning
+- **Image Handling**: image_picker for camera/gallery access
+- **Architecture**: Clean architecture with separated concerns
+- **State Management**: StatefulWidget (easily expandable to Provider/Riverpod/Bloc)
+- **Platform Support**: iOS 11+ and Android 5.0+ (API 21+)
+
+## 📱 App Structure
+
+### Screens
+- **Home**: Dashboard showing current vehicle, combined MPG, and recent fill-ups
+- **History**: Complete fill-up history with swipe-to-edit/delete actions
+- **Stats**: Detailed analytics with charts, trends, and insights
+- **Garage**: Multi-vehicle management with vehicle profiles and photos
+- **Add Fill-Up**: Manual entry form with all fuel tracking fields
+- **Receipt Scanner**: OCR-powered receipt scanning with auto-population
+- **Onboarding**: First-time setup for adding your first vehicle
+
+### Data Models
+- **VehicleProfile**: Stores vehicle details, EPA ratings, and metadata
+- **FillupRecord**: Complete fill-up data with MPG calculations
+- **FuelStats**: Aggregated statistics and analytics per vehicle
+
+## 🚀 Current Feature Status
+
+### ✅ Implemented
+- [x] Tank-to-tank MPG calculation
+- [x] Full vs partial fill tracking
+- [x] Multi-vehicle support with photos
+- [x] Receipt scanning with OCR
+- [x] SQLite database persistence
+- [x] Comprehensive analytics and charts
+- [x] City/Highway driving split
+- [x] Cost tracking (per gallon, per mile, total)
+- [x] EPA comparison
+- [x] Swipe-to-edit/delete
+- [x] Dark mode with adaptive UI
+- [x] Onboarding flow
+
+### 🔮 Future Roadmap
 - [ ] Export data (CSV, PDF reports)
-- [ ] Backup & sync (cloud storage)
-- [ ] Widgets for at-a-glance stats
+- [ ] Cloud backup & sync
+- [ ] Home screen widgets
 - [ ] Fuel price tracking & alerts
+- [ ] Maintenance reminders based on mileage
 - [ ] Trip computer integration
 - [ ] Gamification (achievements, streaks)
 - [ ] Social features (compare with friends)
+- [ ] Weather impact correlation
 
-## 🤝 Contributing
+## 📊 Why Accurate Tracking Matters
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+**For Your Wallet:**
+- Identify inefficient driving patterns costing you money
+- Track the true cost per mile of vehicle operation
+- Compare fuel costs across different stations and grades
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+**For Your Vehicle:**
+- Spot efficiency drops that indicate maintenance needs
+- Monitor the impact of different fuel grades
+- Track long-term vehicle performance
 
-### Commit Convention
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
+**For Your Knowledge:**
+- Understand how driving style affects fuel economy
+- See real-world MPG vs manufacturer claims
+- Make informed decisions about future vehicle purchases
 
-## 📄 License
+## 🎯 Who It's For
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- **Daily Commuters**: Track how your daily driving affects fuel costs
+- **Fleet Managers**: Monitor multiple vehicles' efficiency (future feature)
+- **Car Enthusiasts**: Get detailed data on your vehicle's performance
+- **Budget-Conscious Drivers**: Optimize fuel spending with data-driven insights
+- **Anyone Who Cares**: About accuracy, data, and understanding their vehicle
 
-## 🙏 Acknowledgments
+## 📖 How to Use
 
-- [adaptive_platform_ui](https://pub.dev/packages/adaptive_platform_ui) for seamless platform adaptation
-- Flutter team for the amazing framework
-- All fuel tracking enthusiasts who understand the importance of accurate data
+1. **Add Your Vehicle**: Create a profile with make, model, year, and optional EPA ratings
+2. **Log Fill-Ups**: Either:
+   - Scan your receipt with the camera
+   - Manually enter odometer, gallons, and cost
+3. **Track Efficiency**: After 2+ full tank fills, see your accurate tank-to-tank MPG
+4. **Analyze Trends**: View detailed statistics, charts, and insights
+5. **Optimize**: Use the data to improve your fuel efficiency and reduce costs
 
-## 📧 Contact
+## 💡 Pro Tips
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter)
+- **Always fill to "full"** for most accurate MPG calculations
+- **Partial fills are tracked separately** - they won't skew your data
+- **DTE is optional** - it's helpful for real-time monitoring but not required
+- **Log immediately** after filling up to avoid forgetting details
+- **Use receipt scanning** to save time and reduce data entry errors
+- **Track city/highway split** to understand different driving conditions
 
-Project Link: [https://github.com/YOUR_USERNAME/fueltrack-pro](https://github.com/YOUR_USERNAME/fueltrack-pro)
+## ⚠️ Important Notes
+
+- This app is designed for **personal fuel economy tracking**
+- MPG calculations require at least 2 full tank fill-ups
+- Partial fills are tracked but don't contribute to historical MPG
+- DTE readings are estimates and may vary from actual range
+- Always consult a professional mechanic for vehicle concerns
 
 ---
 
-**Note**: This app is designed for personal fuel economy tracking and should not be used as the sole indicator for vehicle health or performance issues. Always consult a professional mechanic for vehicle concerns.
+**Built with ❤️ using Flutter** | Dark mode liquid glass aesthetics | Adaptive iOS/Android UI
