@@ -2,6 +2,16 @@
 
 A modern, accurate fuel economy tracking app built with Flutter that uses the **gold standard tank-to-tank method** for MPG calculations. Features receipt scanning with OCR, multi-vehicle support, and comprehensive analytics with an adaptive UI that seamlessly transitions between iOS and Android.
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/65f39f59-9476-4e19-b0f2-271bd86945a3" width="30%" />
+  <img src="https://github.com/user-attachments/assets/adaf3e88-2105-44f3-a553-dcff2d64fa67" width="30%" />
+  <img src="https://github.com/user-attachments/assets/593fad91-6c38-414b-a461-fa8411cee9a4" width="30%" />
+  <img src="https://github.com/user-attachments/assets/36d508d6-3969-4421-9cac-9b687d744f5e" width="30%" />
+  <img src="https://github.com/user-attachments/assets/620fade8-2cc0-4019-869a-5666e7d67162" width="30%" />
+  <img src="https://github.com/user-attachments/assets/2a92e85c-b0e1-498e-9658-9437aa6adab9" width="30%" />
+
+</p>
+
 ## 🎯 What It Does
 
 FuelTrack Pro helps you track your vehicle's real-world fuel economy with scientific accuracy. Unlike apps that rely on unreliable DTE (Distance to Empty) sensors or estimates, we use the proven tank-to-tank calculation method that matches EPA testing standards.
