@@ -13,18 +13,36 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+// Expose state class so main.dart can call refresh
+class HomeScreenState extends State<HomeScreen> {
   VehicleProfile? _activeVehicle;
+  List<VehicleProfile> _allVehicles = [];
   FuelStats? _stats;
   List<FillupRecord> _recentFillups = [];
   bool _isLoading = true;
+  
+  // PageView controller for vehicle swiping
+  late PageController _pageController;
+  int _currentVehicleIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  // Public method to refresh data from outside
+  void refreshData() {
     _loadData();
   }
 
@@ -34,28 +52,65 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final vehicle = await DatabaseService.instance.getActiveVehicle();
+      // Load all vehicles and active vehicle
+      final allVehicles = await DatabaseService.instance.getAllVehicles();
+      final activeVehicle = await DatabaseService.instance.getActiveVehicle();
       
-      if (vehicle != null) {
-        final stats = await DatabaseService.instance.calculateStats(vehicle.id);
-        final fillups = await DatabaseService.instance.getFillupsByVehicle(vehicle.id);
+      if (activeVehicle != null && allVehicles.isNotEmpty) {
+        // Find the index of the active vehicle
+        final activeIndex = allVehicles.indexWhere((v) => v.id == activeVehicle.id);
+        
+        // Load stats and fillups for active vehicle
+        final stats = await DatabaseService.instance.calculateStats(activeVehicle.id);
+        final fillups = await DatabaseService.instance.getFillupsByVehicle(activeVehicle.id);
         
         setState(() {
-          _activeVehicle = vehicle;
+          _allVehicles = allVehicles;
+          _activeVehicle = activeVehicle;
+          _currentVehicleIndex = activeIndex != -1 ? activeIndex : 0;
           _stats = stats;
           _recentFillups = fillups.take(3).toList();
           _isLoading = false;
         });
+        
+        // Jump to the active vehicle page AFTER the frame is rendered
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(_currentVehicleIndex);
+          }
+        });
       } else {
         setState(() {
+          _allVehicles = allVehicles;
           _isLoading = false;
         });
       }
     } catch (e) {
+      debugPrint('Error loading data: $e');
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _switchToVehicle(int index) async {
+    if (index < 0 || index >= _allVehicles.length) return;
+    
+    final newVehicle = _allVehicles[index];
+    
+    // Set as active vehicle in database
+    await DatabaseService.instance.setActiveVehicle(newVehicle.id);
+    
+    // Load stats for the new vehicle
+    final stats = await DatabaseService.instance.calculateStats(newVehicle.id);
+    final fillups = await DatabaseService.instance.getFillupsByVehicle(newVehicle.id);
+    
+    setState(() {
+      _activeVehicle = newVehicle;
+      _currentVehicleIndex = index;
+      _stats = stats;
+      _recentFillups = fillups.take(3).toList();
+    });
   }
 
   Future<String> _getFullImagePath(String fileName) async {
@@ -77,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Color(0xFF667EEA),
                 ),
               )
-            : _activeVehicle == null
+            : _allVehicles.isEmpty
                 ? _buildEmptyState()
                 : CustomScrollView(
                     slivers: [
@@ -86,8 +141,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const SizedBox(height: 16),
                             
-                            // Enhanced Vehicle Hero Display
-                            _buildEnhancedVehicleDisplay(),
+                            // Vehicle Hero Display with PageView
+                            _buildVehiclePageView(),
+                            
+                            // Pager Indicator
+                            if (_allVehicles.length > 1) ...[
+                              const SizedBox(height: 16),
+                              _buildPagerIndicator(),
+                            ],
                             
                             // Subtle separator/spacing
                             const SizedBox(height: 8),
@@ -133,232 +194,277 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEnhancedVehicleDisplay() {
-    return Container(
-      height: 220, // Reduced from 280 by ~25%
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        boxShadow: [
-          // Subtle wide shadow for elevation
-          BoxShadow(
-            color: const Color(0xFF667EEA).withOpacity(0.15),
-            blurRadius: 30,
-            spreadRadius: 0,
-            offset: const Offset(0, 10),
-          ),
-        ],
+  Widget _buildVehiclePageView() {
+    return SizedBox(
+      height: 220,
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: _allVehicles.length,
+        onPageChanged: (index) {
+          _switchToVehicle(index);
+        },
+        itemBuilder: (context, index) {
+          final vehicle = _allVehicles[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildEnhancedVehicleDisplay(vehicle),
+          );
+        },
       ),
-      child: Stack(
-        children: [
-          // Glass effect container
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF1A1A1A).withOpacity(0.8),
-                  const Color(0xFF1A1A1A).withOpacity(0.6),
-                ],
+    );
+  }
+
+  Widget _buildPagerIndicator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_allVehicles.length, (index) {
+        final isActive = index == _currentVehicleIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: isActive ? 24 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: isActive 
+                ? const Color(0xFF667EEA) 
+                : const Color(0xFF667EEA).withOpacity(0.3),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildEnhancedVehicleDisplay(VehicleProfile vehicle) {
+    // Load stats for this specific vehicle
+    return FutureBuilder<FuelStats>(
+      future: DatabaseService.instance.calculateStats(vehicle.id),
+      builder: (context, statsSnapshot) {
+        final vehicleStats = statsSnapshot.data;
+        
+        return Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF667EEA).withOpacity(0.15),
+                blurRadius: 30,
+                spreadRadius: 0,
+                offset: const Offset(0, 10),
               ),
-              border: Border.all(
-                color: const Color(0xFF667EEA).withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(32),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  color: const Color(0xFF1A1A1A).withOpacity(0.3),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Glass effect container
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF1A1A1A).withOpacity(0.8),
+                      const Color(0xFF1A1A1A).withOpacity(0.6),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFF667EEA).withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      color: const Color(0xFF1A1A1A).withOpacity(0.3),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          
-          // Vehicle Image with rounded corners
-          if (_activeVehicle?.imagePath != null)
-            FutureBuilder<String>(
-              future: _getFullImagePath(_activeVehicle!.imagePath!),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final imageFile = File(snapshot.data!);
-                  if (imageFile.existsSync()) {
+              
+              // Vehicle Image
+              if (vehicle.imagePath != null)
+                FutureBuilder<String>(
+                  future: _getFullImagePath(vehicle.imagePath!),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final imageFile = File(snapshot.data!);
+                      if (imageFile.existsSync()) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(32),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Image.file(
+                                    imageFile,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildPlaceholderVehicle();
+                                    },
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                height: 100,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.only(
+                                      bottomLeft: Radius.circular(32),
+                                      bottomRight: Radius.circular(32),
+                                    ),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.5),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    }
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(32),
-                      child: Stack(
+                      child: _buildPlaceholderVehicle(),
+                    );
+                  },
+                )
+              else
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: _buildPlaceholderVehicle(),
+                ),
+              
+              // Vehicle info overlay card (bottom left)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // The image itself
-                          Positioned.fill(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Image.file(
-                                imageFile,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return _buildPlaceholderVehicle();
-                                },
-                              ),
+                          Text(
+                            vehicle.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          // Gradient overlay at bottom
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: 100,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: const BorderRadius.only(
-                                  bottomLeft: Radius.circular(32),
-                                  bottomRight: Radius.circular(32),
-                                ),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.5),
-                                  ],
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.speed,
+                                color: Colors.white.withOpacity(0.7),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${vehicleStats?.totalMiles.toStringAsFixed(0) ?? '0'} miles',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 14,
                                 ),
                               ),
-                            ),
+                              if (vehicle.epaCombined != null) ...[
+                                const SizedBox(width: 12),
+                                Container(
+                                  height: 12,
+                                  width: 1,
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'EPA ${vehicle.epaCombined!.toStringAsFixed(0)} MPG',
+                                  style: TextStyle(
+                                    color: const Color(0xFF667EEA).withOpacity(0.9),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Info button (bottom right)
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddVehicleScreen(vehicle: vehicle),
+                      ),
                     );
-                  }
-                }
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(32),
-                  child: _buildPlaceholderVehicle(),
-                );
-              },
-            )
-          else
-            ClipRRect(
-              borderRadius: BorderRadius.circular(32),
-              child: _buildPlaceholderVehicle(),
-            ),
-          
-          // Vehicle info overlay card (bottom left)
-          Positioned(
-            bottom: 16,
-            left: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _activeVehicle!.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.speed,
-                        color: Colors.white.withOpacity(0.7),
-                        size: 14,
+                    if (result == true) {
+                      _loadData();
+                    }
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF667EEA).withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${_stats?.totalMiles.toStringAsFixed(0) ?? '0'} miles',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 14,
-                        ),
-                      ),
-                      if (_activeVehicle?.epaCombined != null) ...[
-                        const SizedBox(width: 12),
-                        Container(
-                          height: 12,
-                          width: 1,
-                          color: Colors.white.withOpacity(0.3),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'EPA ${_activeVehicle!.epaCombined!.toStringAsFixed(0)} MPG',
-                          style: TextStyle(
-                            color: const Color(0xFF667EEA).withOpacity(0.9),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF667EEA).withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
                         ),
                       ],
-                    ],
-                  ),
-                ],
-              ),
-                ),
-              ),
-            ),
-          ),
-          
-          // Info button (bottom right)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: GestureDetector(
-              onTap: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddVehicleScreen(vehicle: _activeVehicle),
-                  ),
-                );
-                if (result == true) {
-                  _loadData();
-                }
-              },
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF667EEA).withOpacity(0.9),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF667EEA).withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
                     ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.info_outline,
-                  color: Colors.white,
-                  size: 24,
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

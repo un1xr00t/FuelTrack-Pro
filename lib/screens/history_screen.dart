@@ -12,10 +12,11 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<HistoryScreen> createState() => HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+// Expose state class so main.dart can call refresh
+class HistoryScreenState extends State<HistoryScreen> {
   VehicleProfile? _activeVehicle;
   List<FillupRecord> _fillups = [];
   FuelStats? _stats;
@@ -24,6 +25,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  // Public method to refresh data from outside
+  void refreshData() {
     _loadData();
   }
 
@@ -447,7 +453,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${fillup.gallons.toStringAsFixed(1)} gal • \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' • ${fillup.location}' : ''}',
+                          '${fillup.gallons.toStringAsFixed(1)} gal â€¢ \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' â€¢ ${fillup.location}' : ''}',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.white.withOpacity(0.6),
@@ -526,4 +532,4 @@ class _HistoryScreenState extends State<HistoryScreen> {
       await _loadData();
     }
   }
-}
+} 

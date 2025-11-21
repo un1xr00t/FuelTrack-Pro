@@ -9,10 +9,11 @@ class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
 
   @override
-  State<StatsScreen> createState() => _StatsScreenState();
+  State<StatsScreen> createState() => StatsScreenState();
 }
 
-class _StatsScreenState extends State<StatsScreen> {
+// Expose state class so main.dart can call refresh
+class StatsScreenState extends State<StatsScreen> {
   VehicleProfile? _activeVehicle;
   FuelStats? _stats;
   List<FillupRecord> _fillups = [];
@@ -21,6 +22,11 @@ class _StatsScreenState extends State<StatsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  // Public method to refresh data from outside
+  void refreshData() {
     _loadData();
   }
 
@@ -579,7 +585,7 @@ class _StatsScreenState extends State<StatsScreen> {
       children: [
         if (mpgImprovement.abs() > 0.5)
           _buildInsightCard(
-            'ðŸŽ¯ Efficiency Trend',
+            'Ã°Å¸Å½Â¯ Efficiency Trend',
             mpgImprovement > 0
                 ? 'Your MPG has improved by ${mpgImprovement.toStringAsFixed(1)}%'
                 : 'Your MPG has decreased by ${mpgImprovement.abs().toStringAsFixed(1)}%',
@@ -591,14 +597,14 @@ class _StatsScreenState extends State<StatsScreen> {
         if (mpgImprovement.abs() > 0.5) const SizedBox(height: 12),
         if (epaComparison != null && _stats!.averageCostPerMile < 0.12)
           _buildInsightCard(
-            'ðŸ’° Cost Optimization',
+            'Ã°Å¸â€™Â° Cost Optimization',
             'You\'re spending less than average',
             'Your efficient driving saves money',
             const Color(0xFF667EEA),
           ),
         if (epaComparison != null && _stats!.averageCostPerMile < 0.12) const SizedBox(height: 12),
         _buildInsightCard(
-          'ðŸ“ˆ Best Performance',
+          'Ã°Å¸â€œË† Best Performance',
           'Your best efficiency: ${_stats!.bestMPG.toStringAsFixed(1)} MPG',
           _stats!.cityDrivingPercent < 50 ? 'Mostly highway driving' : 'Great city efficiency',
           const Color(0xFFF59E0B),
