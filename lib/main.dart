@@ -197,10 +197,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Use AdaptiveScaffold for iOS, regular Scaffold for Android
+    // Use AdaptiveScaffold for iOS
     if (Platform.isIOS) {
       return AdaptiveScaffold(
-        body: _screens[_selectedIndex],
+        body: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            // Prevent scroll notifications from hiding tab bar
+            return true;
+          },
+          child: _screens[_selectedIndex],
+        ),
         bottomNavigationBar: AdaptiveBottomNavigationBar(
           useNativeBottomBar: true,
           items: [
