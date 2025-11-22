@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -196,6 +197,84 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Use AdaptiveScaffold for iOS, regular Scaffold for Android
+    if (Platform.isIOS) {
+      return AdaptiveScaffold(
+        body: _screens[_selectedIndex],
+        bottomNavigationBar: AdaptiveBottomNavigationBar(
+          useNativeBottomBar: true,
+          items: [
+            AdaptiveNavigationDestination(
+              icon: 'house.fill',
+              label: 'Home',
+            ),
+            AdaptiveNavigationDestination(
+              icon: 'clock.fill',
+              label: 'History',
+            ),
+            AdaptiveNavigationDestination(
+              icon: 'chart.bar.fill',
+              label: 'Stats',
+            ),
+            AdaptiveNavigationDestination(
+              icon: 'car.fill',
+              label: 'Garage',
+            ),
+          ],
+          selectedIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+        ),
+        floatingActionButton: _selectedIndex != 3
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // Receipt Scan FAB
+                  FloatingActionButton(
+                    heroTag: 'receipt_scan',
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ReceiptScanScreen(),
+                        ),
+                      );
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
+                    backgroundColor: const Color(0xFF10B981),
+                    child: const Icon(Icons.receipt_long, size: 28, color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+                  // Manual Add FAB
+                  FloatingActionButton(
+                    heroTag: 'manual_add',
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AddFillupScreen(),
+                        ),
+                      );
+                      if (result == true && mounted) {
+                        setState(() {});
+                      }
+                    },
+                    backgroundColor: const Color(0xFF667EEA),
+                    child: const Icon(Icons.add, size: 32, color: Colors.white),
+                  ),
+                  const SizedBox(height: 70), // Space above navbar
+                ],
+              )
+            : null,
+      );
+    }
+    
+    // Android: Use regular Material components
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
