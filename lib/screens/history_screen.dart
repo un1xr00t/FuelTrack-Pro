@@ -299,8 +299,11 @@ class HistoryScreenState extends State<HistoryScreen> {
         ),
         ...List.generate(fillups.length, (index) {
           final fillup = fillups[index];
-          final previousFillup = index < fillups.length - 1
-              ? fillups[index + 1]
+          
+          // FIX: Get previous fillup from the main _fillups list, not the month's fillups
+          final fillupIndexInMain = _fillups.indexOf(fillup);
+          final previousFillup = fillupIndexInMain < _fillups.length - 1
+              ? _fillups[fillupIndexInMain + 1]
               : null;
           final mpg = fillup.calculateMPG(previousFillup);
           
@@ -453,7 +456,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${fillup.gallons.toStringAsFixed(1)} gal â€¢ \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' â€¢ ${fillup.location}' : ''}',
+                          '${fillup.gallons.toStringAsFixed(1)} gal • \$${fillup.totalCost.toStringAsFixed(2)}${fillup.location != null ? ' • ${fillup.location}' : ''}',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.white.withOpacity(0.6),
@@ -477,7 +480,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                                 fontWeight: FontWeight.w600,
                                 color: fillup.isFullTank
                                     ? const Color(0xFF10B981)
-                                    : const Color(0xFDF59E0B),
+                                    : const Color(0xFFF59E0B),
                               ),
                             ),
                           ],
@@ -532,4 +535,4 @@ class HistoryScreenState extends State<HistoryScreen> {
       await _loadData();
     }
   }
-} 
+}

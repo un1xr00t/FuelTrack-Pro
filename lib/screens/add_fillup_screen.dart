@@ -236,7 +236,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                     controller: _odometerController,
                     label: 'Current Odometer',
                     hint: 'e.g., 4686',
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     suffix: 'miles',
                   ),
                   const SizedBox(height: 24),
@@ -254,7 +254,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                     controller: _dteBeforeController,
                     label: 'DTE Before Fill-Up (Optional)',
                     hint: 'e.g., 45 miles remaining',
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     suffix: 'mi',
                   ),
                   const SizedBox(height: 12),
@@ -262,7 +262,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                     controller: _dteAfterController,
                     label: 'DTE After Fill-Up (Optional)',
                     hint: 'e.g., 425 miles on full tank',
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     suffix: 'mi',
                   ),
                   const SizedBox(height: 24),
@@ -277,7 +277,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                           controller: _gallonsController,
                           label: 'Gallons',
                           hint: '0.00',
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           suffix: 'gal',
                         ),
                       ),
@@ -287,7 +287,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
                           controller: _costController,
                           label: 'Total Cost',
                           hint: '0.00',
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           prefix: '\$',
                         ),
                       ),
@@ -733,7 +733,7 @@ class _AddFillupScreenState extends State<AddFillupScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('â€¢ ', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 16)),
+          Text('• ', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 16)),
           Expanded(
             child: Text(
               text,
