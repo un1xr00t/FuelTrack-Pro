@@ -60,6 +60,28 @@ class FuelTrackProApp extends StatelessWidget {
             statusBarIconBrightness: Brightness.light,
           ),
         ),
+        // CRITICAL: Force dark navigation bar theme
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Color(0xFF000000),
+          indicatorColor: Color(0xFF667EEA),
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          iconTheme: WidgetStatePropertyAll(
+            IconThemeData(color: Colors.white),
+          ),
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFF000000),
+          selectedItemColor: Color(0xFF667EEA),
+          unselectedItemColor: Colors.white54,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+        ),
       ),
       cupertinoDarkTheme: const CupertinoThemeData(
         brightness: Brightness.dark,
@@ -174,34 +196,49 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveScaffold(
+    return Scaffold(
       body: _screens[_selectedIndex],
-      bottomNavigationBar: AdaptiveBottomNavigationBar(
-        useNativeBottomBar: true,
-        items: [
-          AdaptiveNavigationDestination(
-            icon: 'house.fill',
-            label: 'Home',
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF000000),
+          border: Border(
+            top: BorderSide(
+              color: Color(0xFF2A2A2A),
+              width: 0.5,
+            ),
           ),
-          AdaptiveNavigationDestination(
-            icon: 'clock.fill',
-            label: 'History',
-          ),
-          AdaptiveNavigationDestination(
-            icon: 'chart.bar.fill',
-            label: 'Stats',
-          ),
-          AdaptiveNavigationDestination(
-            icon: 'car.fill',
-            label: 'Garage',
-          ),
-        ],
-        selectedIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: const Color(0xFF000000),
+          selectedItemColor: const Color(0xFF667EEA),
+          unselectedItemColor: Colors.white54,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history),
+              label: 'History',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: 'Stats',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.directions_car),
+              label: 'Garage',
+            ),
+          ],
+        ),
       ),
       floatingActionButton: _selectedIndex != 3
           ? Column(
