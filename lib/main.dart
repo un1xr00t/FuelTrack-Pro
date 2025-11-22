@@ -39,7 +39,7 @@ class FuelTrackProApp extends StatelessWidget {
       title: 'FuelTrack Pro',
       themeMode: ThemeMode.dark,
       materialDarkTheme: ThemeData(
-        useMaterial3: true,
+        useMaterial3: false,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF000000),
         primaryColor: const Color(0xFF667EEA),
@@ -293,6 +293,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           unselectedItemColor: Colors.white54,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
           currentIndex: _selectedIndex,
           onTap: (index) {
             setState(() {
