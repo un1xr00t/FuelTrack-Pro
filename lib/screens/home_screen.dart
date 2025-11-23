@@ -922,7 +922,7 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${gallons.toStringAsFixed(1)} gal • \$${cost.toStringAsFixed(2)}${location != null ? ' • $location' : ''}',
+                  '${gallons.toStringAsFixed(1)} gal - \$${cost.toStringAsFixed(2)}${location != null ? ' - $location' : ''}',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withOpacity(0.6),
