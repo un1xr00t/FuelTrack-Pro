@@ -47,19 +47,15 @@ class FillupDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date & Time Header
                 _buildHeaderCard(dateStr, timeStr),
                 const SizedBox(height: 24),
 
-                // MPG Featured Card
                 if (mpg > 0) _buildMPGCard(),
                 if (mpg > 0) const SizedBox(height: 24),
 
-                // Fill Type Badge
                 _buildFillTypeCard(),
                 const SizedBox(height: 24),
 
-                // Main Stats
                 const Text(
                   'FUEL DETAILS',
                   style: TextStyle(
@@ -73,7 +69,6 @@ class FillupDetailScreen extends StatelessWidget {
                 _buildStatsGrid(),
                 const SizedBox(height: 24),
 
-                // Additional Info
                 const Text(
                   'ADDITIONAL INFO',
                   style: TextStyle(
@@ -87,7 +82,6 @@ class FillupDetailScreen extends StatelessWidget {
                 _buildAdditionalInfo(),
                 const SizedBox(height: 24),
 
-                // DTE Info (if available)
                 if (fillup.dteBeforeFillup != null || fillup.dteAfterFillup != null) ...[
                   const Text(
                     'DISTANCE TO EMPTY',
@@ -125,7 +119,14 @@ class FillupDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF667EEA),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF667EEA),
+                  const Color(0xFF667EEA).withOpacity(0.7),
+                ],
+              ),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
@@ -553,7 +554,7 @@ class FillupDetailScreen extends StatelessWidget {
       try {
         await DatabaseService.instance.deleteFillup(fillup.id);
         if (context.mounted) {
-          Navigator.pop(context, true); // Return true to indicate deletion
+          Navigator.pop(context, true);
         }
       } catch (e) {
         debugPrint('Error deleting fill-up: $e');
