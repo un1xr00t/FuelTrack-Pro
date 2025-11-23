@@ -98,7 +98,10 @@ class HistoryScreenState extends State<HistoryScreen> {
       final monthKey = DateFormat('MMMM yyyy').format(fillup.date);
       if (!grouped.containsKey(monthKey)) {
         grouped[monthKey] = [];
-        _expandedMonths[monthKey] = true; // Default to expanded
+        // Only set default to true if not already set
+        if (!_expandedMonths.containsKey(monthKey)) {
+          _expandedMonths[monthKey] = true;
+        }
       }
       grouped[monthKey]!.add(fillup);
     }
@@ -573,30 +576,38 @@ class HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _expandedMonths[month] = !isExpanded;
-                });
-              },
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      month,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF667EEA),
-                        letterSpacing: 0.5,
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _expandedMonths[month] = !(_expandedMonths[month] ?? true);
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          month,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF667EEA),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
-                    ),
+                      Icon(
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                        color: const Color(0xFF667EEA),
+                        size: 28,
+                      ),
+                    ],
                   ),
-                  Icon(
-                    isExpanded ? Icons.expand_less : Icons.expand_more,
-                    color: const Color(0xFF667EEA),
-                  ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
