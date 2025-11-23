@@ -585,7 +585,7 @@ class StatsScreenState extends State<StatsScreen> {
       children: [
         if (mpgImprovement.abs() > 0.5)
           _buildInsightCard(
-            'Ã°Å¸Å½Â¯ Efficiency Trend',
+            'Efficiency Trend',
             mpgImprovement > 0
                 ? 'Your MPG has improved by ${mpgImprovement.toStringAsFixed(1)}%'
                 : 'Your MPG has decreased by ${mpgImprovement.abs().toStringAsFixed(1)}%',
@@ -597,14 +597,14 @@ class StatsScreenState extends State<StatsScreen> {
         if (mpgImprovement.abs() > 0.5) const SizedBox(height: 12),
         if (epaComparison != null && _stats!.averageCostPerMile < 0.12)
           _buildInsightCard(
-            'Ã°Å¸â€™Â° Cost Optimization',
+            'Cost Optimization',
             'You\'re spending less than average',
             'Your efficient driving saves money',
             const Color(0xFF667EEA),
           ),
         if (epaComparison != null && _stats!.averageCostPerMile < 0.12) const SizedBox(height: 12),
         _buildInsightCard(
-          'Ã°Å¸â€œË† Best Performance',
+          'Best Performance',
           'Your best efficiency: ${_stats!.bestMPG.toStringAsFixed(1)} MPG',
           _stats!.cityDrivingPercent < 50 ? 'Mostly highway driving' : 'Great city efficiency',
           const Color(0xFFF59E0B),
