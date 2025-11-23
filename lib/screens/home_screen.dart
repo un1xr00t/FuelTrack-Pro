@@ -739,7 +739,7 @@ class HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
         if (_stats != null && _stats!.totalFillups > 0) ...[
           _buildInsightCard(
-            'ðŸŽ¯ Driving Efficiency',
+            'Driving Efficiency',
             '${cityPercent.toStringAsFixed(0)}% city / ${(100 - cityPercent).toStringAsFixed(0)}% highway',
             cityPercent > 70
                 ? 'Mostly city driving'
@@ -751,7 +751,7 @@ class HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           if (epaComparison != null)
             _buildInsightCard(
-              'ðŸ“Š Compared to EPA',
+              'Compared to EPA',
               epaComparison > 0
                   ? '+${epaComparison.toStringAsFixed(1)} MPG above rating'
                   : '${epaComparison.toStringAsFixed(1)} MPG below rating',
@@ -762,14 +762,14 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           if (epaComparison != null) const SizedBox(height: 12),
           _buildInsightCard(
-            'ðŸ’¡ Total Fill-Ups',
+            'Total Fill-Ups',
             '${_stats!.totalFillups} recorded',
             'Keep tracking for better insights!',
-            const Color(0xFFF59E0B),
+            const Color(0xFDF59E0B),
           ),
         ] else ...[
           _buildInsightCard(
-            'ðŸš€ Get Started',
+            'Get Started',
             'No fill-ups yet',
             'Add your first fill-up to start tracking!',
             const Color(0xFF667EEA),
@@ -922,7 +922,7 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${gallons.toStringAsFixed(1)} gal â€¢ \$${cost.toStringAsFixed(2)}${location != null ? ' â€¢ $location' : ''}',
+                  '${gallons.toStringAsFixed(1)} gal • \$${cost.toStringAsFixed(2)}${location != null ? ' • $location' : ''}',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withOpacity(0.6),
