@@ -3,21 +3,12 @@
 A modern, accurate fuel economy tracking app built with Flutter that uses the **gold standard tank-to-tank method** for MPG calculations. Features receipt scanning with OCR, multi-vehicle support, and comprehensive analytics with an adaptive UI that seamlessly transitions between iOS and Android.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/65f39f59-9476-4e19-b0f2-271bd86945a3" width="30%" />
-  <img src="https://github.com/user-attachments/assets/adaf3e88-2105-44f3-a553-dcff2d64fa67" width="30%" />
-  <img src="https://github.com/user-attachments/assets/593fad91-6c38-414b-a461-fa8411cee9a4" width="30%" />
-  <img src="https://github.com/user-attachments/assets/36d508d6-3969-4421-9cac-9b687d744f5e" width="30%" /
-
-
-<img width="660" height="1434" alt="IMG_4537" src="https://github.com/user-attachments/assets/f9463b8a-4cb1-4c24-a846-6d870cbce334" />
-<img width="660" height="1434" alt="IMG_4538" src="https://github.com/user-attachments/assets/1a762da4-db9c-4a2a-ba9e-c609aed6fd2c" />
-<img width="660" height="1434" alt="IMG_4539" src="https://github.com/user-attachments/assets/06834093-7f7b-4fd5-a309-da939b515f8c" />
-<img width="660" height="1434" alt="IMG_4540" src="https://github.com/user-attachments/assets/b4bf7d2e-a1a1-40ba-a0c4-f56666240eb9" />
-
-
-
-
+  <img src="https://github.com/user-attachments/assets/f9463b8a-4cb1-4c24-a846-6d870cbce334" width="30%" />
+  <img src="https://github.com/user-attachments/assets/1a762da4-db9c-4a2a-ba9e-c609aed6fd2c" width="30%" />
+  <img src="https://github.com/user-attachments/assets/06834093-7f7b-4fd5-a309-da939b515f8c" width="30%" />
+  <img src="https://github.com/user-attachments/assets/b4bf7d2e-a1a1-40ba-a0c4-f56666240eb9" width="30%" />
 </p>
+
 
 ## 🎯 What It Does
 
